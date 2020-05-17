@@ -147,8 +147,9 @@ public class CollectionUtilities {
     //     Which means apply f to value obtained by applying foldRight().
 
     // Method references:
-    //     x::y means (input) -> x.y(input) where x is object and input is set of arguments
-    //     X::y means (input) -> X.y(input) where X is class and input is set of arguments
+    //     x::y means (input) -> x.y(input) where x is object and input is set of arguments.
+    //     X::y means (input) -> X.y(input) where X is class and input is set of arguments OR
+    //                (x) -> x.y() where x is an object which is available as input for the lambda.
 
     // Exercise 3.9
     // My solution 1
