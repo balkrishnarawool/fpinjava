@@ -17,25 +17,30 @@ public class TailCallExamplesTest {
     @Test
     public void testFib1() {
         for (int i = 0; i < 10; i++) {
-            assertEquals(fib1(BigInteger.valueOf(i)).intValue(), fibs[i]);
+            assertEquals(fibs[i], fib1(BigInteger.valueOf(i)).intValue());
         }
     }
 
     @Test
     public void testFib2() {
         for (int i = 0; i < 10; i++) {
-            assertEquals(fib2(BigInteger.valueOf(i)).intValue(), fibs[i]);
+            assertEquals(fibs[i], fib2(BigInteger.valueOf(i)).intValue());
         }
     }
 
     @Test
     public void testFoldLeft() {
-        assertEquals( foldLeft(numbers, "0", s -> i -> "(" + s + " + " + i + ")"), "(((((0 + 1) + 2) + 3) + 4) + 5)");
+        assertEquals("(((((0 + 1) + 2) + 3) + 4) + 5)", foldLeft(numbers, "0", s -> i -> "(" + s + " + " + i + ")"));
+    }
+
+    @Test
+    public void testFoldRight() {
+        assertEquals("(1 + (2 + (3 + (4 + (5 + 0)))))", foldRight(numbers , "0", i -> s -> "(" + i + " + " + s + ")"));
     }
 
     @Test
     public void testRangeImper() {
-        assertEquals( range(1, 5), numbers);
+        assertEquals(numbers, range(1, 5));
     }
 
 }

@@ -1,5 +1,6 @@
 package fpinjava.chapter2;
 
+import static fpinjava.chapter2.FunctionUtilities.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import fpinjava.chapter1.Tuple;
@@ -17,7 +18,7 @@ public class FunctionUtilitiesTest {
 
     @Test
     public void testCompose() {
-        assertEquals( FunctionUtilities.compose(square, triple).apply(2), 36);
+        assertEquals(36, compose(square, triple).apply(2));
     }
 
     @Test
@@ -28,53 +29,52 @@ public class FunctionUtilitiesTest {
         // which would give a Function<Object, Object> instance.
         // But in the second call, higherCompose() already takes Function instances so it knows the types.
 
-        assertEquals( FunctionUtilities.<Integer, Integer, Integer>
-                        higherCompose().apply(square).apply(triple).apply(2),
-               36);
+        assertEquals( 36, FunctionUtilities.<Integer, Integer, Integer>
+                        higherCompose().apply(square).apply(triple).apply(2)
+        );
     }
 
     @Test
     public void testAndThen() {
-        assertEquals( FunctionUtilities.andThen(square, triple).apply(2), 12);
+        assertEquals( 12, andThen(square, triple).apply(2));
     }
 
     @Test
     public void testHigherAndThen() {
-        assertEquals( FunctionUtilities.<Integer, Integer, Integer>
-                higherAndThen().apply(square).apply(triple).apply(2),
-               12);
+        assertEquals( 12, FunctionUtilities.<Integer, Integer, Integer>
+                higherAndThen().apply(square).apply(triple).apply(2));
     }
 
     @Test
     public void testPartialA() {
-     assertEquals( FunctionUtilities.partialA(5,  sum).apply(2), 7);
-     assertEquals( FunctionUtilities.partialA("A",  append).apply("B"), "AB");
+     assertEquals(7,  partialA(5,  sum).apply(2));
+     assertEquals( "AB", partialA("A",  append).apply("B"));
     }
 
     @Test
     public void testPartialB() {
-        assertEquals( FunctionUtilities.partialB(5,  sum).apply(2), 7);
-        assertEquals( FunctionUtilities.partialB("A",  append).apply("B"), "BA");
+        assertEquals( 7, partialB(5,  sum).apply(2));
+        assertEquals( "BA", partialB("A",  append).apply("B"));
 
     }
 
     @Test
     public void testFuncCurried() {
-        assertEquals( FunctionUtilities.func("A", "B", "C", "D"), "A, B, C, D");
-        assertEquals( FunctionUtilities.funcCurried().apply("A").apply("B").apply("C").apply("D"), "A, B, C, D");
+        assertEquals( "A, B, C, D", func("A", "B", "C", "D"));
+        assertEquals(  "A, B, C, D", funcCurried().apply("A").apply("B").apply("C").apply("D"));
     }
 
     @Test
     public void testCurry() {
         Function<Tuple<String, String>, String> f = t -> t._1 + t._2;
-        assertEquals( FunctionUtilities.curry(f).apply("A").apply("B"), f.apply(new Tuple<>("A", "B")));
+        assertEquals( f.apply(new Tuple<>("A", "B")), curry(f).apply("A").apply("B"));
     }
 
     @Test
     public void testReverseArgs() {
         Function<Integer, Function<String, String>> mapper = n -> s -> n + s;
         String str = mapper.apply(1).apply("Number");
-        assertEquals( FunctionUtilities.reverseArgs(mapper).apply("Number").apply(1), str);
+        assertEquals( str, reverseArgs(mapper).apply("Number").apply(1));
     }
 
 }

@@ -2,6 +2,7 @@ package fpinjava.chapter2;
 
 import org.junit.jupiter.api.Test;
 
+import static fpinjava.chapter2.Function.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FunctionTest {
@@ -12,51 +13,51 @@ public class FunctionTest {
 
     @Test
     public void testCompose() {
-        assertEquals(intToLong.compose(stringToInt).apply("2"), 200000000000L);
+        assertEquals(200000000000L, intToLong.compose(stringToInt).apply("2"));
     }
 
     @Test
     public void testAndThen() {
-        assertEquals(stringToInt.andThen(intToLong).apply("2"), 200000000000L);
+        assertEquals(200000000000L, stringToInt.andThen(intToLong).apply("2"));
     }
 
     @Test
     public void testIdentity() {
         Function<Integer, Integer> square = i -> i * i;
 
-        assertEquals(Function.identity().apply("2"), "2");
-        assertEquals(Function.identity().apply(square), square);
-        assertEquals(Function.identity().apply(Function.identity()), Function.identity());
+        assertEquals("2", identity().apply("2"));
+        assertEquals(square, identity().apply(square));
+        assertEquals(identity(), identity().apply(identity()));
     }
 
     @Test
     public void testComposeStatic1() {
-        assertEquals(Function.compose(intToLong, stringToInt).apply("2"), 200000000000L);
+        assertEquals(200000000000L, compose(intToLong, stringToInt).apply("2"));
     }
 
     @Test
     public void testAndThenStatic1() {
-        assertEquals(Function.andThen(stringToInt, intToLong).apply("2"), 200000000000L);
+        assertEquals(200000000000L, andThen(stringToInt, intToLong).apply("2"));
     }
 
     @Test
     public void testComposeStatic2() {
-        assertEquals(Function.<String, Integer, Long>compose().apply(stringToInt).apply(intToLong).apply("2"), 200000000000L);
+        assertEquals(200000000000L, Function.<String, Integer, Long>compose().apply(stringToInt).apply(intToLong).apply("2"));
     }
 
     @Test
     public void testAndThenStatic2() {
-        assertEquals(Function.<Integer, Long, String>andThen().apply(intToLong).apply(stringToInt).apply("2"), 200000000000L);
+        assertEquals(200000000000L, Function.<Integer, Long, String>andThen().apply(intToLong).apply(stringToInt).apply("2"));
     }
 
     @Test
     public void testHigherAndThen() {
-        assertEquals(Function.<String, Integer, Long>higherAndThen().apply(stringToInt).apply(intToLong).apply("2"), 200000000000L);
+        assertEquals(200000000000L, Function.<String, Integer, Long>higherAndThen().apply(stringToInt).apply(intToLong).apply("2"));
     }
 
     @Test
     public void testHigherCompose() {
-        assertEquals(Function.<String, Integer, Long>higherCompose().apply(intToLong).apply(stringToInt).apply("2"), 200000000000L);
+        assertEquals(200000000000L, Function.<String, Integer, Long>higherCompose().apply(intToLong).apply(stringToInt).apply("2"));
     }
 
 }

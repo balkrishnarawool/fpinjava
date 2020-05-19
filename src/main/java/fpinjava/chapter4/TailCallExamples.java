@@ -62,4 +62,14 @@ public abstract class TailCallExamples<T> {
                 ? ret(list)
                 : sus( () -> range_(start + 1, end, append(list, start)));
     }
+
+    public static <T, U> U foldRight(List<T> ts, U identity, Function<T, Function<U, U>> f) {
+        return foldRight_(reverseFoldLeft(ts), identity, f).eval(); // reverseFoldLeft() is simply reverse() using left-folding
+    }
+
+    public static <T, U> TailCall<U> foldRight_(List<T> ts, U accumulator, Function<T, Function<U, U>> f) {
+        return (ts.isEmpty())
+                ? ret(accumulator)
+                : sus( () ->  foldRight_(tail(ts), f.apply(head(ts)).apply(accumulator), f));
+    }
 }
