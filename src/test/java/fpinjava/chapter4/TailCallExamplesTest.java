@@ -1,7 +1,6 @@
 package fpinjava.chapter4;
 
 import fpinjava.chapter2.Function;
-import fpinjava.chapter3.CollectionUtilities;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -9,6 +8,7 @@ import java.util.List;
 
 import static fpinjava.chapter3.CollectionUtilities.list;
 import static fpinjava.chapter3.CollectionUtilities.map;
+
 import static fpinjava.chapter4.TailCallExamples.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -47,7 +47,7 @@ public class TailCallExamplesTest {
     }
 
     @Test
-    public void testComposeAll() {
+    public void testComposeAllAndThenAll() {
         final Function<Integer, Integer> add2 = n -> n + 2;
         final Function<Integer, Integer> square = n -> n * n;
         final Function<Integer, Integer> cube = n -> n * n * n;
@@ -70,4 +70,9 @@ public class TailCallExamplesTest {
         assertEquals(500, andThenAllViaFoldRight(map(range(0, 500), x -> add)).apply(0));
     }
 
+    @Test
+    public void testFibo() {
+        assertEquals("0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55", fibo(10));
+        assertEquals("0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55", fiboCorecursive(10));
+    }
 }

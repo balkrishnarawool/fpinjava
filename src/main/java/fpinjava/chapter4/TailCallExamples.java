@@ -1,7 +1,7 @@
 package fpinjava.chapter4;
 
+import fpinjava.chapter1.Tuple;
 import fpinjava.chapter2.Function;
-import fpinjava.chapter3.CollectionUtilities;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -97,7 +97,7 @@ public abstract class TailCallExamples<T> {
 
     // From above two solutions it is clear that composeAll requires right folding
     public static <T> Function<T, T> composeAll(List<Function<T, T>> list) {
-//        return CollectionUtilities.foldRightRecurs1(list, identity(), f1 -> f2 -> f1.compose(f2));// For lists with around 8500 elements, this will throw StackOverflowError
+        // return CollectionUtilities.foldRightRecurs1(list, identity(), f1 -> f2 -> f1.compose(f2)); // For lists with around 8500 elements, this will throw StackOverflowError
         return foldRight(list, identity(), f1 -> f2 -> f1.compose(f2));// So use this.
     }
 
@@ -117,6 +117,49 @@ public abstract class TailCallExamples<T> {
 
     public static <T> Function<T, T> andThenAllViaFoldRight(List<Function<T, T>> list) {
         return t -> foldRight(reverseFoldLeft(list), t, f -> f::apply);
+    }
+
+    // Exercise 4.9
+    // Given an integer n gives a String representing n fibonacci numbers
+    public static String fibo(int number) {
+        List<BigInteger> list = fibo_(list(BigInteger.ZERO), BigInteger.ONE, BigInteger.ZERO, BigInteger.valueOf(number)).eval();
+        return makeString(list, ", ");
+    }
+
+    private static <T> TailCall<List<BigInteger>> fibo_(List<BigInteger> acc, BigInteger acc1, BigInteger acc2, BigInteger x) {
+        return x.equals(BigInteger.ZERO)
+                ? ret(acc)
+                : x.equals(BigInteger.ONE)
+                    ? ret(append(acc, acc1.add(acc2)))
+                    : sus(() -> fibo_(append(acc, acc1.add(acc2)), acc2, acc1.add(acc2), x.subtract(BigInteger.ONE)));
+    }
+
+    public static <T> String makeString(List<T> list, String separator) {
+        return list.isEmpty()
+                ? ""
+                : tail(list).isEmpty()
+                    ? head(list).toString()
+                    : head(list) + foldLeft(tail(list), "", x -> y -> x + separator + y);
+    }
+
+    public static String fiboCorecursive(int number) {
+        Tuple<BigInteger, BigInteger> seed =
+                new Tuple<>(BigInteger.ONE, BigInteger.ZERO);
+        Function<Tuple<BigInteger, BigInteger>,Tuple<BigInteger, BigInteger>> f =
+                x -> new Tuple<>(x._2, x._1.add(x._2));
+        List<BigInteger> list = map(iterate(seed, f, number + 1), x -> x._1);
+        return makeString(list, ", ");
+    }
+
+    // Stack-safe version of CollectionUtilities.iterate()
+    public static <T> List<T> iterate(T seed, Function<T, T> f, int n) {
+        return iterate_(seed, f, n, list()).eval();
+    }
+
+    public static <T> TailCall<List<T>> iterate_(T seed, Function<T, T> f, int n, List<T> acc) {
+        return (n == 0)
+                ? ret(acc)
+                : sus( () -> iterate_(f.apply(seed), f, n - 1, append(acc, f.apply(seed))));
     }
 
 }

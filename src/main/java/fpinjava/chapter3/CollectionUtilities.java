@@ -1,11 +1,13 @@
 package fpinjava.chapter3;
 
+import fpinjava.chapter2.Function;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+
 
 /**
  * A set of utilities to deal with collections.
@@ -225,6 +227,14 @@ public class CollectionUtilities {
         return p.apply(seed)
                 ? prepend(seed, unfoldRecurs(f.apply(seed), f, p))
                 : list();
+    }
+
+    // Returns List of n T instances
+    // tack-safe version is present in TailCallExamples
+    public static <T> List<T> iterate(T seed, Function<T, T> f, int n) {
+        return (n == 0)
+                ? list()
+                : prepend(f.apply(seed), iterate(f.apply(seed), f, n - 1));
     }
 
 }
