@@ -159,7 +159,7 @@ public abstract class TailCallExamples<T> {
     public static <T> TailCall<List<T>> iterate_(T seed, Function<T, T> f, int n, List<T> acc) {
         return (n == 0)
                 ? ret(acc)
-                : sus( () -> iterate_(f.apply(seed), f, n - 1, append(acc, f.apply(seed))));
+                : sus(() -> iterate_(f.apply(seed), f, n - 1, append(acc, f.apply(seed))));
     }
 
 }
