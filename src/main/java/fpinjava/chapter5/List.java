@@ -82,16 +82,22 @@ public abstract class List<T> {
                 : ds.head() * product(ds.tail());
     }
 
-    public static <T, U> U foldRight(List<T> list, U identity, Function<T, Function<U, U>> f) {
-        return list.isEmpty()
+    public <U> U foldRight(U identity, Function<T, Function<U, U>> f) {
+        return isEmpty()
                 ? identity
-                : f.apply(list.head()).apply(foldRight(list.tail(), identity, f));
+                : f.apply(head()).apply(tail().foldRight(identity, f));
     }
 
-    public static <T, U> U foldLeft(List<T> list, U identity, Function<U, Function<T, U>> f) {
-        return list.isEmpty()
+    // Exercise 5.9
+    public int length() {
+        return foldRight(0, e -> n -> n + 1);
+    }
+
+    // Exercise 5.10
+    public <U> U foldLeft(U identity, Function<U, Function<T, U>> f) {
+        return isEmpty()
                 ? identity
-                : foldLeft(list.tail(), f.apply(identity).apply(list.head()), f);
+                : tail().foldLeft(f.apply(identity).apply(head()), f);
     }
 
     public static <T, U> U foldLeftStackSafe(List<T> list, U identity, Function<U, Function<T, U>> f) {
@@ -104,9 +110,28 @@ public abstract class List<T> {
                 : sus(() -> foldLeftStackSafe_(list.tail(), f.apply(identity).apply(list.head()), f));
     }
 
-    // Exercise 5.9
-    public int length() {
-        return foldRight(this, 0, e -> n -> n + 1);
+    // Exercise 5.11
+    public static Integer sumViaFoldLeft(List<Integer> list) {
+        return list.foldLeft(0, acc -> num -> acc + num);
+    }
+    public static Double productViaFoldLeft(List<Double> list) {
+        return list.foldLeft(1.0, acc -> num -> acc * num);
+    }
+    public static Integer lengthViaFoldLeft(List<Integer> list) {
+        return list.foldLeft(0, acc -> num -> acc + 1);
+    }
+
+    // Exercise 5.12
+    public static <T> List<T> reverseViaFoldLeft(List<T> list) {
+        return list.foldLeft(list(), l -> l::cons);
+    }
+
+    // Exercise 5.13
+    public static <T, U> U foldRightViaFoldLeft(List<T> list, U identity, Function<T, Function<U, U>> f) {
+        return list.reverse().foldLeft(identity, u -> t -> f.apply(t).apply(u));
+    }
+    public static <T, U> U foldLeftViaFoldRight(List<T> list, U identity, Function<U, Function<T, U>> f) {
+        return list.reverse().foldRight(identity, t -> u -> f.apply(u).apply(t));
     }
 
     private static class Nil<T> extends List<T> {
