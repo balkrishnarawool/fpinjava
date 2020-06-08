@@ -1,5 +1,6 @@
 package fpinjava.chapter5;
 
+import fpinjava.chapter2.Function;
 import fpinjava.chapter4.TailCall;
 
 import java.util.Arrays;
@@ -22,15 +23,52 @@ public abstract class List<T> {
         return new Cons<>(t, this);
     }
 
-    public static <T> List<T> setHead(List<T> list, T h) {
-        if (list.isEmpty()) {
-            throw new IllegalStateException("setHead called on an empty list");
-        } else {
-            return new Cons<>(h, list.tail());
-        }
+//    Below is static version of the method setHead().
+//    But it could be implemented as instance method as well,
+//    so instance version is being used.
+//    public static <T> List<T> setHead(List<T> list, T h) {
+//        if (list.isEmpty()) {
+//            throw new IllegalStateException("setHead called on an empty list");
+//        } else {
+//            return new Cons<>(h, list.tail());
+//        }
+//    }
+    public abstract List<T> setHead(List<T> list, T h);
+
+    public String toString() {
+        return "[ " + toStringInternal() + " ]";
+    }
+    protected abstract String toStringInternal();
+
+    public abstract List<T> drop(int n);
+
+    public abstract List<T> dropWhile(Function<T, Boolean> f);
+
+    public static <T> List<T> concat(List<T> list1, List<T> list2) {
+        return concat_(list1.reverse(), list2).eval();
     }
 
-    private static class Nil<T> extends List {
+    private static <T> TailCall<List<T>> concat_(List<T> list1, List<T> list2) {
+        return list1.isEmpty()
+                ? ret(list2)
+                : sus(() -> concat_(list1.tail(), new Cons<>(list1.head(), list2)));
+    }
+
+    public List<T> reverse() {
+        return reverse_(this, list()).eval();
+    }
+
+    private static <T> TailCall<List<T>> reverse_(List<T> list, List<T> acc) {
+        return list.isEmpty()
+                ? ret(acc)
+                : sus(() -> reverse_(list.tail(), new Cons<>(list.head(), acc)));
+    }
+
+    public List<T> init() {
+        return reverse().tail().reverse();
+    }
+
+    private static class Nil<T> extends List<T> {
 
         private Nil() {}
 
@@ -47,6 +85,26 @@ public abstract class List<T> {
         @Override
         public boolean isEmpty() {
             return true;
+        }
+
+        @Override
+        public List<T> setHead(List<T> list, T h) {
+            throw new IllegalStateException("setHead called on an empty list");
+        }
+
+        @Override
+        protected String toStringInternal() {
+            return "NIL";
+        }
+
+        @Override
+        public List<T> drop(int n) {
+            return this;
+        }
+
+        @Override
+        public List<T> dropWhile(Function<T, Boolean> f) {
+            return this;
         }
     }
 
@@ -73,6 +131,47 @@ public abstract class List<T> {
         @Override
         public boolean isEmpty() {
             return false;
+        }
+
+        @Override
+        public List<T> setHead(List<T> list, T h) {
+            return new Cons<>(h, list.tail());
+        }
+
+        @Override
+//      public String toStringInternal() {
+//          return head + ", " + tail._toString();
+//      }
+//      Above implementation works but it is not stack-safe.
+//      So we make it stack0safe below.
+        protected String toStringInternal() {
+          return toStringInternal_(this, new StringBuilder()).eval().toString();
+        }
+        private static <T> TailCall<StringBuilder> toStringInternal_(List<T> list, StringBuilder acc) {
+            return list.isEmpty()
+                    ? ret(acc.append("NIL"))
+                    : sus(() -> toStringInternal_(list.tail(), acc.append(list.head()).append(", ")));
+        }
+
+        @Override
+        public List<T> drop(int n) {
+            return drop_(this, n).eval();
+        }
+
+        private static <T> TailCall<List<T>> drop_(List<T> list, int n) {
+            return (list.isEmpty() || n == 0)
+                    ? ret(list)
+                    : sus(() -> drop_(list.tail(), n - 1));
+        }
+
+        @Override
+        public List<T> dropWhile(Function<T, Boolean> f) {
+            return dropWhile_(this, f).eval();
+        }
+        private static <T> TailCall<List<T>> dropWhile_(List<T> list, Function<T, Boolean> f) {
+            return (list.isEmpty() || !f.apply(list.head()))
+                    ? ret(list)
+                    : sus(() -> dropWhile_(list.tail(), f));
         }
     }
 
