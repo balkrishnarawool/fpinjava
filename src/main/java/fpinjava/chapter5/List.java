@@ -68,6 +68,47 @@ public abstract class List<T> {
         return reverse().tail().reverse();
     }
 
+    // Exercise 5.7
+    public static Integer sum(List<Integer> ints) {
+        return ints.isEmpty()
+                ? 0
+                : ints.head() + sum(ints.tail());
+    }
+
+    // Exercise 5.8
+    public static Double product(List<Double> ds) {
+        return ds.isEmpty()
+                ? 1.0
+                : ds.head() * product(ds.tail());
+    }
+
+    public static <T, U> U foldRight(List<T> list, U identity, Function<T, Function<U, U>> f) {
+        return list.isEmpty()
+                ? identity
+                : f.apply(list.head()).apply(foldRight(list.tail(), identity, f));
+    }
+
+    public static <T, U> U foldLeft(List<T> list, U identity, Function<U, Function<T, U>> f) {
+        return list.isEmpty()
+                ? identity
+                : foldLeft(list.tail(), f.apply(identity).apply(list.head()), f);
+    }
+
+    public static <T, U> U foldLeftStackSafe(List<T> list, U identity, Function<U, Function<T, U>> f) {
+        return foldLeftStackSafe_(list, identity, f).eval();
+    }
+
+    public static <T, U> TailCall<U> foldLeftStackSafe_(List<T> list, U identity, Function<U, Function<T, U>> f) {
+        return list.isEmpty()
+                ? ret(identity)
+                : sus(() -> foldLeftStackSafe_(list.tail(), f.apply(identity).apply(list.head()), f));
+    }
+
+    // Exercise 5.9
+    public int length() {
+        return foldRight(this, 0, e -> n -> n + 1);
+    }
+
     private static class Nil<T> extends List<T> {
 
         private Nil() {}
