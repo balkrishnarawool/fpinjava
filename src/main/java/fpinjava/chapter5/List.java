@@ -23,26 +23,161 @@ public abstract class List<T> {
         return new Cons<>(t, this);
     }
 
-//    Below is static version of the method setHead().
-//    But it could be implemented as instance method as well,
-//    so instance version is being used.
-//    public static <T> List<T> setHead(List<T> list, T h) {
-//        if (list.isEmpty()) {
-//            throw new IllegalStateException("setHead called on an empty list");
-//        } else {
-//            return new Cons<>(h, list.tail());
-//        }
-//    }
     public abstract List<T> setHead(List<T> list, T h);
-
     public String toString() {
         return "[ " + toStringInternal() + " ]";
     }
     protected abstract String toStringInternal();
 
     public abstract List<T> drop(int n);
-
     public abstract List<T> dropWhile(Function<T, Boolean> f);
+
+    private static class Nil<T> extends List<T> {
+
+        private Nil() {}
+
+        @Override
+        public T head() {
+            throw new IllegalStateException("head() called on Nil");
+        }
+
+        @Override
+        public List<T> tail() {
+            throw new IllegalStateException("tail() called on Nil");
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public List<T> setHead(List<T> list, T h) {
+            throw new IllegalStateException("setHead called on an empty list");
+        }
+
+        @Override
+        protected String toStringInternal() {
+            return "NIL";
+        }
+
+        @Override
+        public List<T> drop(int n) {
+            return this;
+        }
+
+        @Override
+        public List<T> dropWhile(Function<T, Boolean> f) {
+            return this;
+        }
+    }
+
+    private static class Cons<T> extends List<T> {
+
+        private List<T> tail;
+        private T head;
+
+        private Cons(T head, List<T> tail) {
+            this.head = head;
+            this.tail = tail;
+        }
+
+        @Override
+        public T head() {
+            return head;
+        }
+
+        @Override
+        public List<T> tail() {
+            return tail;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public List<T> setHead(List<T> list, T h) {
+            return new Cons<>(h, list.tail());
+        }
+
+        @Override
+//      public String toStringInternal() {
+//          return head + ", " + tail._toString();
+//      }
+//      Above implementation works but it is not stack-safe.
+//      So we make it stack0safe below.
+        protected String toStringInternal() {
+          return toStringInternal_(this, new StringBuilder()).eval().toString();
+        }
+        private static <T> TailCall<StringBuilder> toStringInternal_(List<T> list, StringBuilder acc) {
+            return list.isEmpty()
+                    ? ret(acc.append("NIL"))
+                    : sus(() -> toStringInternal_(list.tail(), acc.append(list.head()).append(", ")));
+        }
+
+        @Override
+        public List<T> drop(int n) {
+            return drop_(this, n).eval();
+        }
+        private static <T> TailCall<List<T>> drop_(List<T> list, int n) {
+            return (list.isEmpty() || n == 0)
+                    ? ret(list)
+                    : sus(() -> drop_(list.tail(), n - 1));
+        }
+
+        @Override
+        public List<T> dropWhile(Function<T, Boolean> f) {
+            return dropWhile_(this, f).eval();
+        }
+        private static <T> TailCall<List<T>> dropWhile_(List<T> list, Function<T, Boolean> f) {
+            return (list.isEmpty() || !f.apply(list.head()))
+                    ? ret(list)
+                    : sus(() -> dropWhile_(list.tail(), f));
+        }
+    }
+
+    public static <T> List<T> list() {
+        return NIL;
+    }
+
+    @SafeVarargs
+    public static <T> List<T> list(T... ts) {
+        List<T> list = list();
+        for (int i = ts.length - 1; i >= 0; i--) {
+            list = new Cons<>(ts[i], list);
+        }
+        return list;
+    }
+    // Above method implementation is imperative.
+    // It's functional equivalent would be this:
+    @SafeVarargs
+    public static <T> List<T> listFunc(T... ts) {
+        return list_(list(), ts).eval();
+    }
+    public static <T> TailCall<List<T>> list_(List<T> acc, T[] ts) {
+        return ts.length == 0
+                ? ret(acc)
+                : sus(() -> list_(new Cons<>(ts[ts.length -1], acc),
+                Arrays.copyOfRange(ts, 0, ts.length - 1)));
+    }
+    // But this would be thousands of times worse in performance.
+    // So we use imperative implementation.
+    // Don't always use functional-style implementation.
+    // Always think of imperative counterpart.
+    // Sometimes imperative is better.
+
+    //    Below is static version of the method setHead().
+    //    But it could be implemented as instance method as well,
+    //    so instance version is being used.
+    //    public static <T> List<T> setHead(List<T> list, T h) {
+    //        if (list.isEmpty()) {
+    //            throw new IllegalStateException("setHead called on an empty list");
+    //        } else {
+    //            return new Cons<>(h, list.tail());
+    //        }
+    //    }
 
     public static <T> List<T> concat(List<T> list1, List<T> list2) {
         return concat_(list1.reverse(), list2).eval();
@@ -134,140 +269,56 @@ public abstract class List<T> {
         return list.reverse().foldRight(identity, t -> u -> f.apply(u).apply(t));
     }
 
-    private static class Nil<T> extends List<T> {
-
-        private Nil() {}
-
-        @Override
-        public T head() {
-            throw new IllegalStateException("head() called on Nil");
-        }
-
-        @Override
-        public List<T> tail() {
-            throw new IllegalStateException("tail() called on Nil");
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public List<T> setHead(List<T> list, T h) {
-            throw new IllegalStateException("setHead called on an empty list");
-        }
-
-        @Override
-        protected String toStringInternal() {
-            return "NIL";
-        }
-
-        @Override
-        public List<T> drop(int n) {
-            return this;
-        }
-
-        @Override
-        public List<T> dropWhile(Function<T, Boolean> f) {
-            return this;
-        }
+    // Exercise 5.14
+    public <U> U foldRightStackSafe(U identity, Function<T, Function<U, U>> f) {
+        return reverse().foldRightStackSafe_(f, identity).eval();
+    }
+    private <U> TailCall<U> foldRightStackSafe_(Function<T, Function<U, U>> f, U accumulator) {
+        return isEmpty()
+                ? ret(accumulator)
+                : sus(() -> tail().foldRightStackSafe_(f, f.apply(head()).apply(accumulator)));
     }
 
-    private static class Cons<T> extends List<T> {
-
-        private List<T> tail;
-        private T head;
-
-        private Cons(T head, List<T> tail) {
-            this.head = head;
-            this.tail = tail;
-        }
-
-        @Override
-        public T head() {
-            return head;
-        }
-
-        @Override
-        public List<T> tail() {
-            return tail;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return false;
-        }
-
-        @Override
-        public List<T> setHead(List<T> list, T h) {
-            return new Cons<>(h, list.tail());
-        }
-
-        @Override
-//      public String toStringInternal() {
-//          return head + ", " + tail._toString();
-//      }
-//      Above implementation works but it is not stack-safe.
-//      So we make it stack0safe below.
-        protected String toStringInternal() {
-          return toStringInternal_(this, new StringBuilder()).eval().toString();
-        }
-        private static <T> TailCall<StringBuilder> toStringInternal_(List<T> list, StringBuilder acc) {
-            return list.isEmpty()
-                    ? ret(acc.append("NIL"))
-                    : sus(() -> toStringInternal_(list.tail(), acc.append(list.head()).append(", ")));
-        }
-
-        @Override
-        public List<T> drop(int n) {
-            return drop_(this, n).eval();
-        }
-
-        private static <T> TailCall<List<T>> drop_(List<T> list, int n) {
-            return (list.isEmpty() || n == 0)
-                    ? ret(list)
-                    : sus(() -> drop_(list.tail(), n - 1));
-        }
-
-        @Override
-        public List<T> dropWhile(Function<T, Boolean> f) {
-            return dropWhile_(this, f).eval();
-        }
-        private static <T> TailCall<List<T>> dropWhile_(List<T> list, Function<T, Boolean> f) {
-            return (list.isEmpty() || !f.apply(list.head()))
-                    ? ret(list)
-                    : sus(() -> dropWhile_(list.tail(), f));
-        }
+    // Exercise 5.15
+    public static <T> List<T> concat2(List<T> list1, List<T> list2) {
+        return list1.foldRightStackSafe(list2, t -> list -> list.cons(t));
+    }
+    public static <T> List<T> concatViaFoldLeft(List<T> list1, List<T> list2) {
+        return list1.reverse().foldLeft(list2, list -> t -> list.cons(t));
     }
 
-    public static <T> List<T> list() {
-        return NIL;
+    // Exercise 5.16
+    public static <T> List<T> flatten(List<List<T>> list) {
+        return list.foldRightStackSafe(list(), l -> acc -> concat(l, acc));
     }
 
-    @SafeVarargs
-    public static <T> List<T> list(T... ts) {
-        List<T> list = list();
-        for (int i = ts.length - 1; i >= 0; i--) {
-            list = new Cons<>(ts[i], list);
-        }
-        return list;
+    // Exercise 5.17
+    public static List<Integer> triple(List<Integer> list) {
+        return list.foldRightStackSafe(list(), n -> l -> l.cons(n * 3));
     }
-    // Above method implementation is imperative.
-    // It's functional equivalent would be this:
-    @SafeVarargs
-    public static <T> List<T> listFunc(T... ts) {
-        return list_(list(), ts).eval();
+
+    // Exercise 5.18
+    public static List<String> doubleToString(List<Double> list) {
+        return list.foldRightStackSafe(list(), n -> l -> l.cons(n.toString()));
     }
-    public static <T> TailCall<List<T>> list_(List<T> acc, T[] ts) {
-        return ts.length == 0
-                ? ret(acc)
-                : sus(() -> list_(new Cons<>(ts[ts.length -1], acc),
-                Arrays.copyOfRange(ts, 0, ts.length - 1)));
+
+    // Exercise 5.19
+    public <U> List<U> map(Function<T, U> f) {
+        return foldRightStackSafe(list(), t -> list -> list.cons(f.apply(t)));
     }
-    // But this would be thousands of times worse in performance.
-    // So we use imperative implementation.
-    // Don't always use functional-style implementation.
-    // Always think of imperative counterpart.
-    // Sometimes imperative is better.
+
+    // Exercise 5.20
+    public List<T> filter(Function<T, Boolean> f) {
+        return foldRightStackSafe(list(), t -> list -> f.apply(t) ? list.cons(t) : list);
+    }
+
+    // Exercise 5.21
+    public <U> List<U> flatMap(Function<T, List<U>> f) {
+        return flatten(map(f));
+    }
+
+    // Exercise 5.22
+    public List<T> filterViaFlatMap(Function<T, Boolean> f) {
+        return flatMap(t -> f.apply(t) ? list(t) : list());
+    }
 }
