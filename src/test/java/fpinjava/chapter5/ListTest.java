@@ -66,20 +66,20 @@ public class ListTest {
 
     @Test
     public void testFoldRight() { // Right fold traverses from right to left in the list
-        assertEquals("12345", l.foldRight("", n -> s -> n.toString() + s));
-        assertEquals("54321", l.foldRight("", n -> s -> s + n.toString()));
+        assertEquals("12345", l.foldRightStackUnsafe("", n -> s -> n.toString() + s));
+        assertEquals("54321", l.foldRightStackUnsafe("", n -> s -> s + n.toString()));
     }
 
     @Test
     public void testFoldLeft() { // Left fold traverses from left to right in the list
-        assertEquals("12345", l.foldLeft("", s -> n -> s + n.toString()));
-        assertEquals("54321", l.foldLeft("", s -> n -> n.toString() + s));
+        assertEquals("12345", l.foldLeftStackUnsafe("", s -> n -> s + n.toString()));
+        assertEquals("54321", l.foldLeftStackUnsafe("", s -> n -> n.toString() + s));
     }
 
     @Test
     public void testFoldLeftStackSafe() {
-        assertEquals("12345", l.foldLeft("", s -> n -> s + n.toString()));
-        assertEquals("54321", l.foldLeft("", s -> n -> n.toString() + s));
+        assertEquals("12345", l.foldLeftStackUnsafe("", s -> n -> s + n.toString()));
+        assertEquals("54321", l.foldLeftStackUnsafe("", s -> n -> n.toString() + s));
     }
 
     @Test
@@ -122,8 +122,8 @@ public class ListTest {
 
     @Test
     public void testFoldRightStackSafe() {
-        assertEquals("12345", l.foldRightStackSafe("", s -> n -> s + n.toString()));
-        assertEquals("54321", l.foldRightStackSafe("", s -> n -> n.toString() + s));
+        assertEquals("12345", l.foldRight("", s -> n -> s + n.toString()));
+        assertEquals("54321", l.foldRight("", s -> n -> n.toString() + s));
     }
 
     @Test

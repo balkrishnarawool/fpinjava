@@ -217,25 +217,26 @@ public abstract class List<T> {
                 : ds.head() * product(ds.tail());
     }
 
-    public <U> U foldRight(U identity, Function<T, Function<U, U>> f) {
+    public <U> U foldRightStackUnsafe(U identity, Function<T, Function<U, U>> f) {
         return isEmpty()
                 ? identity
-                : f.apply(head()).apply(tail().foldRight(identity, f));
+                : f.apply(head()).apply(tail().foldRightStackUnsafe(identity, f));
     }
 
     // Exercise 5.9
     public int length() {
-        return foldRight(0, e -> n -> n + 1);
+        return foldRightStackUnsafe(0, e -> n -> n + 1);
     }
 
     // Exercise 5.10
-    public <U> U foldLeft(U identity, Function<U, Function<T, U>> f) {
+    public <U> U foldLeftStackUnsafe(U identity, Function<U, Function<T, U>> f) {
         return isEmpty()
                 ? identity
-                : tail().foldLeft(f.apply(identity).apply(head()), f);
+                : tail().foldLeftStackUnsafe(f.apply(identity).apply(head()), f);
     }
 
-    public static <T, U> U foldLeftStackSafe(List<T> list, U identity, Function<U, Function<T, U>> f) {
+    // stack-safe
+    public static <T, U> U foldLeft(List<T> list, U identity, Function<U, Function<T, U>> f) {
         return foldLeftStackSafe_(list, identity, f).eval();
     }
 
@@ -247,30 +248,31 @@ public abstract class List<T> {
 
     // Exercise 5.11
     public static Integer sumViaFoldLeft(List<Integer> list) {
-        return list.foldLeft(0, acc -> num -> acc + num);
+        return list.foldLeftStackUnsafe(0, acc -> num -> acc + num);
     }
     public static Double productViaFoldLeft(List<Double> list) {
-        return list.foldLeft(1.0, acc -> num -> acc * num);
+        return list.foldLeftStackUnsafe(1.0, acc -> num -> acc * num);
     }
     public static Integer lengthViaFoldLeft(List<Integer> list) {
-        return list.foldLeft(0, acc -> num -> acc + 1);
+        return list.foldLeftStackUnsafe(0, acc -> num -> acc + 1);
     }
 
     // Exercise 5.12
     public static <T> List<T> reverseViaFoldLeft(List<T> list) {
-        return list.foldLeft(list(), l -> l::cons);
+        return list.foldLeftStackUnsafe(list(), l -> l::cons);
     }
 
     // Exercise 5.13
     public static <T, U> U foldRightViaFoldLeft(List<T> list, U identity, Function<T, Function<U, U>> f) {
-        return list.reverse().foldLeft(identity, u -> t -> f.apply(t).apply(u));
+        return list.reverse().foldLeftStackUnsafe(identity, u -> t -> f.apply(t).apply(u));
     }
     public static <T, U> U foldLeftViaFoldRight(List<T> list, U identity, Function<U, Function<T, U>> f) {
-        return list.reverse().foldRight(identity, t -> u -> f.apply(u).apply(t));
+        return list.reverse().foldRightStackUnsafe(identity, t -> u -> f.apply(u).apply(t));
     }
 
     // Exercise 5.14
-    public <U> U foldRightStackSafe(U identity, Function<T, Function<U, U>> f) {
+    // stack-safe
+    public <U> U foldRight(U identity, Function<T, Function<U, U>> f) {
         return reverse().foldRightStackSafe_(f, identity).eval();
     }
     private <U> TailCall<U> foldRightStackSafe_(Function<T, Function<U, U>> f, U accumulator) {
@@ -281,35 +283,35 @@ public abstract class List<T> {
 
     // Exercise 5.15
     public static <T> List<T> concat2(List<T> list1, List<T> list2) {
-        return list1.foldRightStackSafe(list2, t -> list -> list.cons(t));
+        return list1.foldRight(list2, t -> list -> list.cons(t));
     }
     public static <T> List<T> concatViaFoldLeft(List<T> list1, List<T> list2) {
-        return list1.reverse().foldLeft(list2, list -> t -> list.cons(t));
+        return list1.reverse().foldLeftStackUnsafe(list2, list -> t -> list.cons(t));
     }
 
     // Exercise 5.16
     public static <T> List<T> flatten(List<List<T>> list) {
-        return list.foldRightStackSafe(list(), l -> acc -> concat(l, acc));
+        return list.foldRight(list(), l -> acc -> concat(l, acc));
     }
 
     // Exercise 5.17
     public static List<Integer> triple(List<Integer> list) {
-        return list.foldRightStackSafe(list(), n -> l -> l.cons(n * 3));
+        return list.foldRight(list(), n -> l -> l.cons(n * 3));
     }
 
     // Exercise 5.18
     public static List<String> doubleToString(List<Double> list) {
-        return list.foldRightStackSafe(list(), n -> l -> l.cons(n.toString()));
+        return list.foldRight(list(), n -> l -> l.cons(n.toString()));
     }
 
     // Exercise 5.19
     public <U> List<U> map(Function<T, U> f) {
-        return foldRightStackSafe(list(), t -> list -> list.cons(f.apply(t)));
+        return foldRight(list(), t -> list -> list.cons(f.apply(t)));
     }
 
     // Exercise 5.20
     public List<T> filter(Function<T, Boolean> f) {
-        return foldRightStackSafe(list(), t -> list -> f.apply(t) ? list.cons(t) : list);
+        return foldRight(list(), t -> list -> f.apply(t) ? list.cons(t) : list);
     }
 
     // Exercise 5.21
