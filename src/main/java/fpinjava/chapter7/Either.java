@@ -5,14 +5,18 @@ import fpinjava.chapter2.Function;
 import java.util.function.Supplier;
 
 public abstract class Either<T, U> {
+    // A thing to note about Either class:
+    // The function map(), maps Right and passes-through Left.
+    // The function orElse(), maps Left (to given value) and passes through Right.
+    // Similar is true for Option and Result classes.
 
-    public abstract <V> Either<T, V> map(Function<U, V> f);
-    public abstract <V> Either<T, V> flatMap(Function<U, Either<T, V>> f);
+    public abstract <V> Either<T, V> map(Function<U, V> f); // This is more like mapRight() because it maps only Right
+    public abstract <V> Either<T, V> flatMap(Function<U, Either<T, V>> f); // This is more like flatMapRight()
     // getOrElse() returns value (which is U) when "this" Either is Right.
     // Otherwise it returns given defaultValue (which is  U).
-    public abstract U getOrElse(Supplier<U> defaultValue);
+    public abstract U getOrElse(Supplier<U> defaultValue); // This is more like getRightOrElse()
 
-        static class Left<T, U> extends Either<T, U> {
+    static class Left<T, U> extends Either<T, U> {
         private T value;
 
         private Left(T value) {
@@ -66,6 +70,13 @@ public abstract class Either<T, U> {
         public U getOrElse(Supplier<U> defaultValue) {
             return value;
         }
+    }
+
+    // Exercise 7.3
+    // orElse() returns "this" if it is Right.
+    // Otherwise it returns defaultValue.get() (which is Either).
+    public Either<T, U> orElse(Supplier<Either<T, U>> defaultValue) { // this is more like rightOrElse()
+        return map(u -> this).getOrElse(defaultValue);
     }
 
     public static <T, U> Either<T, U> left(T value) {
