@@ -55,7 +55,7 @@ public class CollectionUtilities {
         return ts.get(0);
     }
 
-    // We could have done 'return list(newList)' but that would unnecessarily created at extra copy.
+    // We could 'return list(newList)' but that would unnecessarily create at extra copy.
     // And the original List is only accessible from this method. So there is no question of modifying it outside.
     public static <T> List<T> tail(List<T> ts) {
         if(ts.isEmpty()) { throw new RuntimeException("List is empty"); }
@@ -72,7 +72,7 @@ public class CollectionUtilities {
 
     // Exercise 3.5
     // My solution  1
-    // Instead of BiFunction<Integer, Integer, Integer>, BinaryOperator<Integer> could be used as well
+    // Instead of BiFunction<Integer, Integer, Integer>, BinaryOperator<Integer> could be used as well.
     // Imperative
     public static int foldIntsImperMySol(List<Integer> list, int startingValue, BiFunction<Integer, Integer, Integer> f) {
         for (int n: list) {
@@ -230,12 +230,11 @@ public class CollectionUtilities {
     }
 
     // Returns List of n T instances
-    // tack-safe version is present in TailCallExamples
+    // stack-safe version is present in TailCallExamples
     public static <T> List<T> iterate(T seed, Function<T, T> f, int n) {
         return (n == 0)
                 ? list()
                 : prepend(f.apply(seed), iterate(f.apply(seed), f, n - 1));
     }
-
 }
 

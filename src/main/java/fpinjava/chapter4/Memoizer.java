@@ -2,12 +2,10 @@ package fpinjava.chapter4;
 
 import fpinjava.chapter2.Function;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Memoizer<T, U> {
-
     private Map<T, U> map = new ConcurrentHashMap<>();
 
     private Memoizer() { }

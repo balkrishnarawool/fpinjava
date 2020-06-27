@@ -296,8 +296,6 @@ public abstract class Result<T> {
         };
     }
 
-    // TODO: The 2 things, Either, exception use case, question: why try..catch used in some implementations and not all-or-nothing?
-
     // Exercise 7.13
     public static <T, U, V> Function<Result<T>, Function<Result<U>, Result<V>>> lift2(Function<T, Function<U, V>> f) {
         // My solution:

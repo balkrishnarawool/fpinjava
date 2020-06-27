@@ -17,17 +17,16 @@ public class FunctionUtilities {
         return t -> f1.apply(f2.apply(t));
     }
 
-// Exercise  2.5
-// We could do this (a Function instance that composes two give functions)
-// but then the parameterized types need to be added to the class i.e. Test<T,U,V>
-//    final Function<
-//            Function<V, U>, // --> f1
-//              Function<
-//                Function<T, V>, // --> f2
-//                  Function< T, U>>> // --> result/ composed-function
-//    higherCompose = f1 -> f2 -> t -> f1.apply(f2.apply(t));
-
     // Exercise  2.5
+    // We could do this (a Function instance that composes two given functions).
+    // But then the parameterized types need to be added to the class i.e. Test<T,U,V>
+    //    final Function<
+    //            Function<V, U>, // --> f1
+    //              Function<
+    //                Function<T, V>, // --> f2
+    //                  Function< T, U>>> // --> result/ composed-function
+    //    higherCompose = f1 -> f2 -> t -> f1.apply(f2.apply(t));
+    //
     // The method is called higherCompose() because it creates a higher-order-function
     // to which you have to pass other functions.
     public static final <T, U, V>
@@ -35,7 +34,7 @@ public class FunctionUtilities {
               Function<V, U>, // --> f1
               Function<
                       Function<T, V>, // --> f2
-                      Function<T, U>>> // --> result of applying both (composing) function
+                      Function<T, U>>> // --> result of applying both (composing) functions
         higherCompose() { return f1 -> f2 -> t -> f1.apply(f2.apply(t)); }
 
     // Exercise 2.6
@@ -83,6 +82,4 @@ public class FunctionUtilities {
     public static <T, U, V> Function<U, Function<T, V>> reverseArgs(Function<T, Function<U, V>> f) {
         return u -> t -> f.apply(t).apply(u);
     }
-
-
 }

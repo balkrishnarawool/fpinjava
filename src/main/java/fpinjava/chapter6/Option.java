@@ -143,7 +143,7 @@ public abstract class Option<T> {
 
     // Exercise 6.6
     public Option<T> filter(Function<T, Boolean> f) {
-//        return map(f).getOrElse(false) ? this : none(); // This is my implementation.
+        // return map(f).getOrElse(false) ? this : none(); // This is my implementation.
         return flatMap(t -> f.apply(t) ? this : none());
     }
 

@@ -13,7 +13,6 @@ import static fpinjava.chapter4.TailCall.ret;
 import static fpinjava.chapter4.TailCall.sus;
 
 public abstract class TailCallExamples<T> {
-
     public static BigInteger fib1(BigInteger n) {
         return fib1_(n, BigInteger.ZERO, BigInteger.ONE);
     }
@@ -44,13 +43,11 @@ public abstract class TailCallExamples<T> {
         return sus(() -> fib2_(n.subtract(BigInteger.ONE), n1, n0.add(n1)));
     }
 
-    public static <T, U> U foldLeft(List<T> ts, U identity,
-                                    Function<U, Function<T, U>> f) {
+    public static <T, U> U foldLeft(List<T> ts, U identity, Function<U, Function<T, U>> f) {
         return foldLeft_(ts, identity, f).eval();
     }
 
-    public static <T, U> TailCall<U> foldLeft_(List<T> ts, U identity,
-                                    Function<U, Function<T, U>> f) {
+    public static <T, U> TailCall<U> foldLeft_(List<T> ts, U identity, Function<U, Function<T, U>> f) {
         return (ts.isEmpty())
                 ? ret(identity)
                 : sus(() -> foldLeft_(tail(ts), f.apply(identity).apply(head(ts)), f));
@@ -161,5 +158,4 @@ public abstract class TailCallExamples<T> {
                 ? ret(acc)
                 : sus(() -> iterate_(f.apply(seed), f, n - 1, append(acc, f.apply(seed))));
     }
-
 }

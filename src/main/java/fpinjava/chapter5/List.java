@@ -10,8 +10,8 @@ import static fpinjava.chapter4.TailCall.sus;
 
 public abstract class List<T> {
 
-    public abstract T head();
-    public abstract List<T> tail();
+    protected abstract T head();
+    protected abstract List<T> tail();
     public abstract boolean isEmpty();
 
     @SuppressWarnings("rawtypes")
@@ -102,12 +102,12 @@ public abstract class List<T> {
             return new Cons<>(h, list.tail());
         }
 
-        @Override
-//      public String toStringInternal() {
-//          return head + ", " + tail._toString();
-//      }
-//      Above implementation works but it is not stack-safe.
-//      So we make it stack0safe below.
+        // @Override
+        // public String toStringInternal() {
+        //     return head + ", " + tail._toString();
+        // }
+        // Above implementation works but it is not stack-safe.
+        // So we make it stack safe below.
         protected String toStringInternal() {
           return toStringInternal_(this, new StringBuilder()).eval().toString();
         }
@@ -168,16 +168,16 @@ public abstract class List<T> {
     // Always think of imperative counterpart.
     // Sometimes imperative is better.
 
-    //    Below is static version of the method setHead().
-    //    But it could be implemented as instance method as well,
-    //    so instance version is being used.
-    //    public static <T> List<T> setHead(List<T> list, T h) {
-    //        if (list.isEmpty()) {
-    //            throw new IllegalStateException("setHead called on an empty list");
-    //        } else {
-    //            return new Cons<>(h, list.tail());
-    //        }
-    //    }
+    // Below is static version of the method setHead().
+    // But it could be implemented as instance method as well,
+    // so instance version is being used.
+    // public static <T> List<T> setHead(List<T> list, T h) {
+    //     if (list.isEmpty()) {
+    //         throw new IllegalStateException("setHead called on an empty list");
+    //     } else {
+    //         return new Cons<>(h, list.tail());
+    //     }
+    // }
 
     public static <T> List<T> concat(List<T> list1, List<T> list2) {
         return concat_(list1.reverse(), list2).eval();

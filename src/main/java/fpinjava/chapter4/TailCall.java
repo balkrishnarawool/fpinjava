@@ -87,6 +87,6 @@ public abstract class TailCall<T> {
 //                ? ret(BigInteger.ONE)
 //                : sus(() -> ret(fiboStackSafe_(n - 1).eval().add(fiboStackSafe_(n - 2).eval())));
 //    }
-// Although, if you see the implementation of Suspend.eval(), you see that it requires a Supplier which can be unfolded in one-direction.
+// If you see the implementation of Suspend.eval(), you see that it requires a Supplier which can be unfolded in one-direction.
 // When we call tc.resume(), we assign it to tc again. So it is important that tc.resume() returns Suspend object or Return with value.
 // If Return doesn't have value but recursive call then we are back to stack-unsafe functions.

@@ -5,14 +5,12 @@ import fpinjava.chapter1.Tuple;
 import java.util.function.Supplier;
 
 public class Case<T> extends Tuple<Supplier<Boolean>, Supplier<Result<T>>> {
-
     private Case(Supplier<Boolean> condition, Supplier<Result<T>> value) {
         super(condition, value);
     }
 
     // static methods
-    public static <T> Case<T> mcase(Supplier<Boolean> condition,
-                                    Supplier<Result<T>> value) {
+    public static <T> Case<T> mcase(Supplier<Boolean> condition, Supplier<Result<T>> value) {
         return new Case<>(condition, value);
     }
 
@@ -29,10 +27,8 @@ public class Case<T> extends Tuple<Supplier<Boolean>, Supplier<Result<T>>> {
 
     // subclass(es)
     private static class DefaultCase<T> extends Case<T>{
-
         private DefaultCase(Supplier<Result<T>> value) {
             super(() -> true, value);
         }
     }
-
 }

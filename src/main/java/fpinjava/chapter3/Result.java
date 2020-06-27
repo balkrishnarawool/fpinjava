@@ -1,7 +1,6 @@
 package fpinjava.chapter3;
 
 public interface Result<T> {
-
     // If it isn't good idea to apply effects (except for a very specific place - because we can't completely avoid  them),
     // why are we applying them here?
     void bind(Effect<T> success, Effect<String> failure);
@@ -10,7 +9,6 @@ public interface Result<T> {
     static <T> Failure<T> failure(String error) { return new Result.Failure<>(error); }
 
     class Success<T> implements Result<T> {
-
         private T value;
 
         public Success(T value) {
@@ -26,7 +24,6 @@ public interface Result<T> {
     }
 
     class Failure<T> implements Result<T> {
-
         private String message;
 
         public Failure(String message) {
@@ -44,6 +41,4 @@ public interface Result<T> {
             failure.apply(message);
         }
     }
-
-
 }
