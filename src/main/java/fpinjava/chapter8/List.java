@@ -1,7 +1,8 @@
-package fpinjava.chapter5;
+package fpinjava.chapter8;
 
 import fpinjava.chapter2.Function;
 import fpinjava.chapter4.TailCall;
+import fpinjava.chapter7.Result;
 
 import java.util.Arrays;
 
@@ -16,6 +17,11 @@ public abstract class List<T> {
     public abstract List<T> setHead(List<T> list, T h);
     public abstract List<T> drop(int n);
     public abstract List<T> dropWhile(Function<T, Boolean> f);
+
+    // Exercise 8.1
+    public abstract int lengthMemoized();
+    // Exercise 8.2
+    public abstract Result<T> headOption();
 
     public String toString() {
         return "[ " + toStringInternal() + " ]";
@@ -69,16 +75,28 @@ public abstract class List<T> {
         public List<T> dropWhile(Function<T, Boolean> f) {
             return this;
         }
+
+        @Override
+        public int lengthMemoized() {
+            return 0;
+        }
+
+        @Override
+        public Result<T> headOption() {
+            return Result.empty();
+        }
     }
 
     private static class Cons<T> extends List<T> {
 
         private List<T> tail;
         private T head;
+        private final int length;
 
         private Cons(T head, List<T> tail) {
             this.head = head;
             this.tail = tail;
+            this.length = tail.length() + 1;
         }
 
         @Override
@@ -98,7 +116,7 @@ public abstract class List<T> {
 
         @Override
         public List<T> setHead(List<T> list, T h) {
-            return new Cons<>(h, list.tail());
+            return new List.Cons<>(h, list.tail());
         }
 
         // @Override
@@ -134,6 +152,16 @@ public abstract class List<T> {
             return (list.isEmpty() || !f.apply(list.head()))
                     ? ret(list)
                     : sus(() -> dropWhile_(list.tail(), f));
+        }
+
+        @Override
+        public int lengthMemoized() {
+            return length;
+        }
+
+        @Override
+        public Result<T> headOption() {
+            return Result.success(head);
         }
     }
 
@@ -234,7 +262,6 @@ public abstract class List<T> {
     public static <T, U> U foldLeft(List<T> list, U identity, Function<U, Function<T, U>> f) {
         return foldLeftStackSafe_(list, identity, f).eval();
     }
-
     public static <T, U> TailCall<U> foldLeftStackSafe_(List<T> list, U identity, Function<U, Function<T, U>> f) {
         return list.isEmpty()
                 ? ret(identity)
@@ -317,5 +344,30 @@ public abstract class List<T> {
     // Exercise 5.22
     public List<T> filterViaFlatMap(Function<T, Boolean> f) {
         return flatMap(t -> f.apply(t) ? list(t) : list());
+    }
+
+    //Exercise 8.3
+    public Result<T> lastOption() {
+        return foldLeft(this, Result.empty(), x -> Result::success);
+    }
+
+    //Exercise 8.4
+    // This is functional equivalent of the headOption() function.
+    // But performance wise it is much worse as it traverses the entire list. So don't use it.
+    public Result<T> headOptionFunc() {
+        return foldRight(Result.empty(), x -> y -> Result.success(x));
+    }
+
+    // Exercise 8.5
+    public static <T> List<T> flattenResult(List<Result<T>> list) {
+        // My solution
+        // Problem with this solution:
+        // We have to specify a value to be used when Result<T> is empty or Failure.
+        // return list.foldRight(list(), rt -> lt -> lt.cons(rt.getOrElse(() -> null /* This is default value when Result<T> is empty or Failure. What could be a good default? */)));
+
+        // Logic with author's solution:
+        // Map each element in List<Result<A>> (i.e. Result<A>) to List<A>: if it is Empty or Failure then empty-list, otherwise list with one element.
+        // Right-fold the list and then flatten the list.
+        return flatten(list.foldRight(list(), rt -> llt -> rt.map(t -> llt.cons(list(t))).getOrElse(list())));
     }
 }
