@@ -26,6 +26,9 @@ public abstract class Result<T> {
     public abstract void forEachOrThrow(Effect<T> ef); // forEachSuccessOrThrow(). Note: throw is only possible for Failure (it has Exception).
     public abstract Result<RuntimeException> forEachOrException(Effect<T> ef); // forEachSuccessOrResultException(). Converts Failure into Success<RuntimeException>. Empty otherwise.
 
+    public abstract boolean isSuccess();
+    public abstract boolean isFailure();
+
     @SuppressWarnings("rawtypes")
     private static Result empty = new Empty();
 
@@ -76,6 +79,16 @@ public abstract class Result<T> {
         @Override
         public Result<RuntimeException> forEachOrException(Effect<T> ef) {
             return empty();
+        }
+
+        @Override
+        public boolean isSuccess() {
+            return false;
+        }
+
+        @Override
+        public boolean isFailure() {
+            return false;
         }
 
         @Override
@@ -137,6 +150,11 @@ public abstract class Result<T> {
         @Override
         public String toString() {
             return String.format("Failure(%s)", e.getMessage());
+        }
+
+        @Override
+        public boolean isFailure() {
+            return true;
         }
     }
 
@@ -209,6 +227,16 @@ public abstract class Result<T> {
         @Override
         public String toString() {
             return String.format("Success(%s)", value.toString());
+        }
+
+        @Override
+        public boolean isSuccess() {
+            return true;
+        }
+
+        @Override
+        public boolean isFailure() {
+            return false;
         }
     }
 

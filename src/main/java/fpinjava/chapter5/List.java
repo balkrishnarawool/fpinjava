@@ -234,11 +234,15 @@ public abstract class List<T> {
     public static <T, U> U foldLeft(List<T> list, U identity, Function<U, Function<T, U>> f) {
         return foldLeftStackSafe_(list, identity, f).eval();
     }
-
     public static <T, U> TailCall<U> foldLeftStackSafe_(List<T> list, U identity, Function<U, Function<T, U>> f) {
         return list.isEmpty()
                 ? ret(identity)
                 : sus(() -> foldLeftStackSafe_(list.tail(), f.apply(identity).apply(list.head()), f));
+    }
+
+    // stack-safe instance method
+    public <U> U foldLeft(U identity, Function<U, Function<T, U>> f) {
+        return foldLeft(this, identity, f);
     }
 
     // Exercise 5.11

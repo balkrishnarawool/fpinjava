@@ -1,13 +1,19 @@
 package fpinjava.chapter8;
 
+import fpinjava.chapter1.Tuple;
 import fpinjava.chapter2.Function;
 import fpinjava.chapter4.TailCall;
+import fpinjava.chapter4.Tuple3;
 import fpinjava.chapter7.Result;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static fpinjava.chapter4.TailCall.ret;
 import static fpinjava.chapter4.TailCall.sus;
+import static fpinjava.chapter7.Result.empty;
+import static fpinjava.chapter7.Result.failure;
+import static fpinjava.chapter7.Result.success;
 
 public abstract class List<T> {
 
@@ -83,7 +89,7 @@ public abstract class List<T> {
 
         @Override
         public Result<T> headOption() {
-            return Result.empty();
+            return empty();
         }
     }
 
@@ -268,6 +274,11 @@ public abstract class List<T> {
                 : sus(() -> foldLeftStackSafe_(list.tail(), f.apply(identity).apply(list.head()), f));
     }
 
+    // stack-safe instance method
+    public <U> U foldLeft(U identity, Function<U, Function<T, U>> f) {
+        return foldLeft(this, identity, f);
+    }
+
     // Exercise 5.11
     public static Integer sumViaFoldLeft(List<Integer> list) {
         return list.foldLeftStackUnsafe(0, acc -> num -> acc + num);
@@ -348,14 +359,14 @@ public abstract class List<T> {
 
     //Exercise 8.3
     public Result<T> lastOption() {
-        return foldLeft(this, Result.empty(), x -> Result::success);
+        return foldLeft(this, empty(), x -> Result::success);
     }
 
     //Exercise 8.4
     // This is functional equivalent of the headOption() function.
     // But performance wise it is much worse as it traverses the entire list. So don't use it.
     public Result<T> headOptionFunc() {
-        return foldRight(Result.empty(), x -> y -> Result.success(x));
+        return foldRight(empty(), x -> y -> Result.success(x));
     }
 
     // Exercise 8.5
@@ -370,4 +381,252 @@ public abstract class List<T> {
         // Right-fold the list and then flatten the list.
         return flatten(list.foldRight(list(), rt -> llt -> rt.map(t -> llt.cons(list(t))).getOrElse(list())));
     }
+
+    // Exercise 8.6
+    public static <T> Result<List<T>> sequence(List<Result<T>> list) {
+        return list.filter(rt -> rt.isSuccess() || rt.isFailure())
+                   .foldRight(Result.success(list()), rt -> rlt -> Result.map2(rt, rlt, t -> lt -> lt.cons(t)));
+    }
+
+    // Exercise 8.7
+    // Unlike sequence() in exercise 8.6, Empty results are considered as Failure-s here and are not trated specially.
+    public static <T, U> Result<List<U>> traverse(List<T> list, Function<T, Result<U>> f) {
+        return list.foldRight(Result.success(list()), t -> rlt -> Result.map2(f.apply(t), rlt, t2 -> lt -> lt.cons(t2)));
+    }
+    public static <T> Result<List<T>> sequenceFromTraverse(List<Result<T>> list) {
+        return traverse(list, rt -> rt);
+    }
+
+    // Exercise 8.8
+    public static <T, U, V> List<V> zipWith(List<T> list1, List<U> list2, Function<T, Function<U, V>> f) {
+        return zipWith_(list1, list2, f, list()).eval().reverse();
+    }
+    private static <T, U, V> TailCall<List<V>> zipWith_(List<T> list1, List<U> list2, Function<T, Function<U, V>> f, List<V> acc) {
+        return list1.isEmpty() || list2.isEmpty()
+                ? ret(acc)
+                : sus(() -> zipWith_(list1.tail(), list2.tail(), f, acc.cons(f.apply(list1.head()).apply(list2.head()))));
+    }
+
+    // Exercise 8.9
+    public static <T, U, V> List<V> product(List<T> list1, List<U> list2, Function<T, Function<U, V>> f) {
+        // My solution
+        // return list1.foldLeft(list(), lv -> t -> list2.foldLeft(lv, lv2 -> u -> lv.cons(f.apply(t).apply(u))));
+        // Author's solution
+        return list1.flatMap(t -> list2.map(u -> f.apply(t).apply(u)));
+    }
+
+    // Exercise 8.10
+    public static <T, U> Tuple<List<T>, List<U>> unzip(List<Tuple<T, U>> list) {
+        return list.foldRight(new Tuple<>(list(), list()), ttu -> tltlu -> new Tuple<>(tltlu._1.cons(ttu._1), tltlu._2.cons(ttu._2)));
+    }
+
+    // Exercise 8.11
+    public <T1, T2> Tuple<List<T1>, List<T2>> unzip(Function<T, Tuple<T1, T2>> f) {
+        return foldRight(new Tuple<>(list(), list()), t -> tlt1lt2 ->  {
+            Tuple<T1, T2> tt1t2 = f.apply(t);
+            return new Tuple<>(tlt1lt2._1.cons(tt1t2._1), tlt1lt2._2.cons(tt1t2._2));
+        });
+    }
+
+    // Exercise 8.12
+    public Result<T> getAt(int index) {
+        return index < 0 || index >= length()
+                ? failure("Index out of bounds, index: "+index)
+                : getAt_(index).eval();
+    }
+    public TailCall<Result<T>> getAt_(int index) {
+        return index == 0
+                ? ret(success(head()))
+                : sus(() -> tail().getAt_(index - 1));
+    }
+    public Result<T> getAtUsingFoldLeft(int index) {
+        Tuple<Result<T>, Integer> identity = new Tuple<>(failure("Index out of bounds, index: "+index), index);
+        Tuple<Result<T>, Integer> tuple =
+                index < 0 || index >= length()
+                ? identity
+                : foldLeft( identity, trti -> t -> trti._2 < 0 ? trti : new Tuple<>(success(t), trti._2-1));
+        return tuple._1;
+
+        // return (index < 0 || index >= length()
+        //         ? identity
+        //         : foldLeft( identity, trti -> t -> trti._2 < 0 ? trti : new Tuple<>(success(t), trti._2-1)))._1;
+    }
+
+    // Exercise 8.13
+    public static <T, U> U foldLeft(List<T> list, U identity, U zero, Function<U, Function<T, U>> f) {
+        return foldLeft_(list, identity, zero, f).eval();
+    }
+    private static <T, U> TailCall<U> foldLeft_(List<T> list, U acc, U zero, Function<U, Function<T, U>> f) {
+        return list.isEmpty() || acc.equals(zero)
+                ? ret(acc)
+                : sus(() -> foldLeft_(list.tail(), f.apply(acc).apply(list.head()), zero, f));
+    }
+    public static <T> Result<T> getAtUsingFoldLeftEfficient(List<T> list, int index) {
+        class Tuple<T, U> {
+
+            public final T _1;
+            public final U _2;
+
+            public Tuple(T t, U u) {
+                this._1 = Objects.requireNonNull(t);
+                this._2 = Objects.requireNonNull(u);
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o.getClass() == this.getClass()))
+                    return false;
+                else {
+                    @SuppressWarnings("rawtypes")
+                    Tuple that = (Tuple) o;
+                    return _2.equals(that._2);
+                }
+            }
+        }
+
+        Tuple<Result<T>, Integer> identity = new Tuple<>(failure("Index out of bounds, index: "+index), index);
+        Tuple<Result<T>, Integer> zero = new Tuple<>(Result.failure("Index out of bound"), -1);
+        Tuple<Result<T>, Integer> tuple =
+                index < 0 || index >= list.length()
+                        ? identity
+                        : foldLeft( list, identity, zero, trti -> t -> trti._2 < 0 ? trti : new Tuple<>(success(t), trti._2-1));
+        return tuple._1;
+    }
+
+    // Exercise 8.14
+    // My solution
+    public Tuple<List<T>, List<T>> splitAtMySol(int index) {
+        return index < 0
+                ? new Tuple<>(list(), this)
+                : index >= length()
+                    ? new Tuple<>(this, list())
+                    : splitAtMySol_(new Tuple<>(list(), this), index).eval();
+    }
+    private static <T> TailCall<Tuple<List<T>, List<T>>> splitAtMySol_(Tuple<List<T>, List<T>> acc, int index) {
+        return index < 0 || acc._2.isEmpty()
+                ? ret(new Tuple<>(acc._1.reverse(), acc._2))
+                : sus(() -> splitAtMySol_(new Tuple<>(acc._1.cons(acc._2.head()), acc._2.tail()), index - 1));
+
+    }
+    // Author's solution
+    public Tuple<List<T>, List<T>> splitAt(int index) {
+        return index < 0
+                ? splitAt(0)
+                : index > length()
+                ? splitAt(length())
+                : splitAt(list(), this.reverse(), this.length() - index).eval();
+    }
+    private TailCall<Tuple<List<T>, List<T>>> splitAt(List<T> acc, List<T> list, int i) {
+        return i == 0 || list.isEmpty()
+                ? ret(new Tuple<>(list.reverse(), acc)) // reverse() is done for the remainder of the list and it is added first to the Tuple
+                : sus(() -> splitAt(acc.cons(list.head()), list.tail(), i - 1));
+    }
+    // Differences:
+    // Author did not use Tuple as param, makes it more efficient
+    // Author used split(0) and splitAt(length()) which are more logical given the problem statement
+    // Author used reversed list and then reversed one of the Tuple objects which could have been avoided and only do reverse() once like my solution
+
+    // Exercise 8.15: Part 1
+    public Tuple<List<T>, List<T>> splitAtUsingFoldLeftMySol(Integer index) {
+        return index < 0
+                ? new Tuple<>(list(), this)
+                : index >= length()
+                ? new Tuple<>(this, list())
+                : foldLeft(new Tuple<Tuple<List<T>, List<T>>, Integer>(new Tuple<>(list(), this), index),
+                    ttltlti -> t -> index >= 0 ? new Tuple<>(new Tuple<>(List.<T>list().cons(t), tail()), index - 1) : ttltlti
+                )._1;
+    }
+    // Author's solution
+    public Tuple<List<T>, List<T>> splitAtUsingFoldLeft(int index) {
+        int ii = index < 0 ? 0 : index >= length() ? length() : index;
+        Tuple3<List<T>, List<T>, Integer> identity =
+                new Tuple3<>(List.list(), List.list(), ii);
+        Tuple3<List<T>, List<T>, Integer> rt =
+                foldLeft(identity, ta -> a -> ta._3 == 0
+                        ? new Tuple3<>(ta._1, ta._2.cons(a), ta._3)
+                        : new Tuple3<>(ta._1.cons(a), ta._2, ta._3 - 1));
+        return new Tuple<>(rt._1.reverse(), rt._2.reverse());
+    }
+    // Differences:
+    // Author used Tuple3, much better choice than Tuple<Tuple<>, <>>
+    // He starts with empty lists then fills them up depending on which side of index we are. this is less efficient.
+    // He adjusts index, I ignore it if it is out of bounds.
+
+    // Exercise 8.15: Part 2
+    // Here, there is only one implementation, but the book uses abstract method with implementation in both subclasses.
+    public static <T, U> Tuple<U, List<T>> foldLeftTuple(List<T> list, U identity, U zero, Function<U, Function<T, U>> f) {
+        return foldLeftTuple_(list, identity, zero, f).eval();
+    }
+    private static <T, U> TailCall<Tuple<U, List<T>>> foldLeftTuple_(List<T> list, U acc, U zero, Function<U, Function<T, U>> f) {
+        return list.isEmpty() || acc.equals(zero)
+                ? ret(new Tuple<>(acc, list))
+                : sus(() -> foldLeftTuple_(list.tail(), f.apply(acc).apply(list.head()), zero, f));
+    }
+    public static <T> Tuple<List<T>, List<T>> splitAtUsingFoldLeftEfficient(List<T> list, int index) {
+        class Tuple3<T, U, V> {
+
+            public final T _1;
+            public final U _2;
+            public final V _3;
+
+            public Tuple3(T t, U u, V v) {
+                this._1 = Objects.requireNonNull(t);
+                this._2 = Objects.requireNonNull(u);
+                this._3 = Objects.requireNonNull(v);
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o.getClass() == this.getClass()))
+                    return false;
+                else {
+                    @SuppressWarnings("rawtypes")
+                    Tuple3 that = (Tuple3) o;
+                    return _3.equals(that._3);
+                }
+            }
+        }
+
+        Tuple3<List<T>, List<T>, Integer> identity = new Tuple3<>(list(), list(), index);
+        Tuple3<List<T>, List<T>, Integer> zero = new Tuple3<>(list(), list(), 0);
+        Tuple<Tuple3<List<T>, List<T>, Integer>, List<T>> tuple =
+                index <= 0
+                        ? new Tuple<>(identity, list)
+                        : foldLeftTuple( list, identity, zero, t3ltlti -> t -> t3ltlti._3 < 0 ? t3ltlti : new Tuple3<>(t3ltlti._1.cons(t), t3ltlti._2, t3ltlti._3 - 1));
+        return new Tuple<>(tuple._1._1.reverse(), tuple._2);
+    }
+    // It looks like the second param in the Tuple3 is not being used at all, so we can even do this with a Tuple (with 2 params).
+    // Let's implement it below, write test and see if it works. It is true. See fpinjava.chapter8.ListTest.testSplitAtUsingFoldLeftEfficient()
+    public static <T> Tuple<List<T>, List<T>> splitAtUsingFoldLeftEfficientWithTuple(List<T> list, int index) {
+        class MyTuple<T, U> {
+
+            public final T _1;
+            public final U _2;
+
+            public MyTuple(T t, U u) {
+                this._1 = Objects.requireNonNull(t);
+                this._2 = Objects.requireNonNull(u);
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o.getClass() == this.getClass()))
+                    return false;
+                else {
+                    @SuppressWarnings("rawtypes")
+                    MyTuple that = (MyTuple) o;
+                    return _2.equals(that._2);
+                }
+            }
+        }
+
+        MyTuple<List<T>, Integer> identity = new MyTuple<>(list(), index);
+        MyTuple<List<T>, Integer> zero = new MyTuple<>(list(), 0);
+        Tuple<MyTuple<List<T>, Integer>, List<T>> tuple =
+                index <= 0
+                        ? new Tuple<>(identity, list)
+                        : foldLeftTuple( list, identity, zero, tlti -> t -> tlti._2 < 0 ? tlti : new MyTuple<>(tlti._1.cons(t), tlti._2 - 1));
+        return new Tuple<>(tuple._1._1.reverse(), tuple._2);
+    }
+
 }
