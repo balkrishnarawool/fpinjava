@@ -629,4 +629,27 @@ public abstract class List<T> {
         return new Tuple<>(tuple._1._1.reverse(), tuple._2);
     }
 
+    // Exercise 8.16
+    public static <T> boolean hasSubList(List<T> list, List<T> sub) {
+        return hasSubList_(list, sub).eval();
+    }
+    private static <T> TailCall<Boolean> hasSubList_(List<T> list, List<T> sub) {
+        return list.isEmpty()
+                ? ret(sub.isEmpty())
+                : startsWith(list, sub)
+                    ? ret(true)
+                    : sus(() -> hasSubList_(list.tail(), sub));
+    }
+    private static <T> boolean startsWith(List<T> list, List<T> sub) {
+        return startsWith_(list, sub).eval();
+    }
+    private static <T> TailCall<Boolean> startsWith_(List<T> list, List<T> sub) {
+        return sub.isEmpty()
+                ? ret(true)
+                : list.isEmpty()
+                    ? ret(false)
+                    : list.head().equals(sub.head())
+                        ? sus(() -> startsWith_(list.tail(), sub.tail()))
+                        : ret(false);
+    }
 }
