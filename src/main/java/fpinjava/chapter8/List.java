@@ -7,6 +7,7 @@ import fpinjava.chapter4.Tuple3;
 import fpinjava.chapter7.Result;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 
 import static fpinjava.chapter4.TailCall.ret;
@@ -652,4 +653,87 @@ public abstract class List<T> {
                         ? sus(() -> startsWith_(list.tail(), sub.tail()))
                         : ret(false);
     }
+
+    // Exercise 8.17
+    // The book mentions about a (functional) Map from previous chapters, but we never created one.
+    // So I have used Map from jdk.
+    public <U> Map<U, List<T>> groupBy(Function<T, U> f) {
+        return foldLeft(Map.of(), mult -> t -> {
+            if (mult.get(f.apply(t)) == null) { mult.put(f.apply(t), list(t)); }
+            else { mult.put(f.apply(t), mult.get(f.apply(t)).cons(t)); }
+            return mult;
+        });
+    }
+
+    // Attempt 1
+    // Problems:
+    //      1. Use of new Tuple<>(null, null)
+    //      2. Recursive but non-stack-safe
+    public static <T, U> List<U> unfold1(T t, Function<T, Result<Tuple<U, T>>> f) {
+        return f.apply(t).isSuccess()
+                ? unfold1(f.apply(t).getOrElse(new Tuple<>(null, null))._2, f).cons(f.apply(t).getOrElse(new Tuple<>(null, null))._1)
+                : list();
+    }
+    // Attempt 2
+    // Same as attempt 1 but with accumulator
+    // Problems:
+    //      1. Use of new Tuple<>(null, null)
+    //      2. Recursive but non-stack-safe
+    public static <T, U> List<U> unfold2(T t, Function<T, Result<Tuple<U, T>>> f) {
+        return unfold_(list(), t, f).reverse();
+    }
+    public static <T, U> List<U> unfold_(List<U> lu, T t, Function<T, Result<Tuple<U, T>>> f) {
+        return f.apply(t).isSuccess()
+                ? unfold_(lu.cons(f.apply(t).getOrElse(new Tuple<>(null, null))._1), f.apply(t).getOrElse(new Tuple<>(null, null))._2, f)
+                : lu;
+    }
+    // Attempt 3
+    // Same as attempt 2 but without new Tuple<>(null, null) and with wrapper types so map()/flatMap() can be used easily.
+    // Problems:
+    //      1. Recursive but non-stack-safe
+    //      2. isSuccess() is redundant because getOrElse() is done. -> see attempt 4
+    public static <T, U> List<U> unfold3(T t, Function<T, Result<Tuple<U, T>>> f) {
+        return unfold3_(success(list()), f.apply(t), f).getOrElse(list()).reverse();
+    }
+    public static <T, U> Result<List<U>> unfold3_(Result<List<U>> rlu, Result<Tuple<U, T>> rtut, Function<T, Result<Tuple<U, T>>> f) {
+        return rtut.isSuccess()
+                ? unfold3_(rtut.flatMap(tut -> rlu.map(lu -> lu.cons(tut._1))), rtut.flatMap(tut -> f.apply(tut._2)), f)
+                : rlu;
+    }
+    // Solution 1 from author
+    // Notice use of recursive call from within map(). I didn't think of that.
+    // This could be applied to attempt 3, to remove isSuccess() but
+    // that would make it infinite-loopy because rwcursive call is outside map()/ flatMap().
+    // Problems:
+    //      1. Recursive but non-stack-safe
+    public static <U, T> List<U> unfoldAuthor1(T t, Function<T, Result<Tuple<U, T>>> f) {
+        return f.apply(t).map(rtut -> unfoldAuthor1(rtut._2, f).cons(rtut._1)).getOrElse(list());
+    }
+    // One interesting thing from above function:
+    // For implementing non-stack-safe recursive function, the recursive call can be anywhere in the implementation.
+
+    // Solution 2 from author
+    // Details about this function, see below
+    public static <U, T> List<U> unfold(T t, Function<T, Result<Tuple<U, T>>> f) {
+        return unfold(list(), t, f).eval().reverse();
+    }
+    private static <U, T> TailCall<List<U>> unfold(List<U> acc, T t, Function<T, Result<Tuple<U, T>>> f) {
+        Result<TailCall<List<U>>> result = f.apply(t).map(rt -> sus(() -> unfold(acc.cons(rt._1), rt._2, f)));
+        return result.getOrElse(ret(acc));
+    }
+    // Question 1: This looks like a new pattern of using TailCall.
+    // Normally we do: return <expression> ? sus(() -> <recursive-call>) : ret(<value>);
+    // Is this equivalent to that?
+    // -> Yes, it is. Mainly because there is Result and we do getOrElse() as the last thing.
+    // This means when result is success return what's inside result, otherwise return ret(acc).
+    // This is equivalent to: return result.isSuccess() ? result.get() : ret(acc)
+    // Notice that result.get() is not possible and it actually means that return what's inside result which is sus(() -> unfold(..)) i.e. a recursive call.
+    // This makes it same as familiar TailCall pattern.
+    // Question 2: There seems to be too much happening after sus() or ret().
+    // Is this really tail-recursive?
+    // -> If you see the answer to above question, result.getOrElse() is equivalent to result.isSuccess() ? result.get() : ret(acc)
+    // That makes it tail-recursive.
+    // One interesting thing from above implementation:
+    // The TailCall pattern for implementing stack-safe recursive functions can be differently written when dealing with Result<TailCall>-type.
+    // The last call should be result.getOrElse(ret(..)) and the result can be achieved in any way as long as TailCall inside is sus(() -> <recursive-call>)
 }
