@@ -665,6 +665,7 @@ public abstract class List<T> {
         });
     }
 
+    // Exercise 8.18
     // Attempt 1
     // Problems:
     //      1. Use of new Tuple<>(null, null)
@@ -736,4 +737,15 @@ public abstract class List<T> {
     // One interesting thing from above implementation:
     // The TailCall pattern for implementing stack-safe recursive functions can be differently written when dealing with Result<TailCall>-type.
     // The last call should be result.getOrElse(ret(..)) and the result can be achieved in any way as long as TailCall inside is sus(() -> <recursive-call>)
+
+    // Exercise 8.19
+    public static List<Integer> range(int start, int end) {
+        return unfold(start, i -> i < end ? success(new Tuple<>(i, i + 1)) : empty());
+    }
+
+    // Exercise 8.20
+    // Question: why is there _1 in Author's solution
+    public boolean exists(Function<T, Boolean> f) {
+        return foldLeft(this, false, true, b -> t -> b || f.apply(t));
+    }
 }
