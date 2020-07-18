@@ -748,4 +748,40 @@ public abstract class List<T> {
     public boolean exists(Function<T, Boolean> f) {
         return foldLeft(this, false, true, b -> t -> b || f.apply(t));
     }
+
+    // My first solution
+    // Problems: recursive, stack-unsafe
+    public List<List<T>> divideMySol1(int depth) {
+        if (depth == 0) {
+            return list(this);
+        } else {
+            Tuple<List<T>, List<T>> tu = splitAt(length() / 2);
+            return concat(tu._1.divideMySol1(depth - 1), tu._2.divideMySol1(depth - 1));
+        }
+    }
+
+    // My solution 2
+    // Stack-safe
+    public List<List<T>> divideMySol2(int depth) {
+        return divideMySol2_(list(this), depth).eval();
+    }
+    private static <T> TailCall<List<List<T>>> divideMySol2_(List<List<T>> acc, int depth) {
+        if (depth == 0) {
+            return ret(acc);
+        } else {
+            Function<List<T>, Function<List<List<T>>, List<List<T>>>> f =
+                    l -> ll -> {
+                        Tuple<List<T>, List<T>> tu = l.splitAt(l.length() / 2);
+                        return ll.cons(tu._2).cons(tu._1);
+                    };
+            return sus(() -> divideMySol2_(acc.foldRight(list(), f ), depth -1));
+        }
+    }
+
+    // TODO:
+    // Write author's solution
+    // 3 differences:
+    //  1: Understanding 'depth'
+    //  2: Use of flatMap()
+    //  3: No need of stack-safe
 }
