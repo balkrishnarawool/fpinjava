@@ -9,6 +9,8 @@ import fpinjava.chapter7.Result;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import static fpinjava.chapter4.TailCall.ret;
 import static fpinjava.chapter4.TailCall.sus;
@@ -749,8 +751,16 @@ public abstract class List<T> {
         return foldLeft(this, false, true, b -> t -> b || f.apply(t));
     }
 
+    public boolean forAll(Function<T, Boolean> p) {
+        return foldLeft(this,true, false, x -> y -> x && p.apply(y));
+    }
+    public boolean forAll2(Function<T, Boolean> p) {
+        return !exists(x -> !p.apply(x));
+    }
+
+    // Exercise 8.22
     // My first solution
-    // Problems: recursive, stack-unsafe
+    // Problems with this implementation: recursive, stack-unsafe
     public List<List<T>> divideMySol1(int depth) {
         if (depth == 0) {
             return list(this);
@@ -759,7 +769,6 @@ public abstract class List<T> {
             return concat(tu._1.divideMySol1(depth - 1), tu._2.divideMySol1(depth - 1));
         }
     }
-
     // My solution 2
     // Stack-safe
     public List<List<T>> divideMySol2(int depth) {
@@ -777,11 +786,66 @@ public abstract class List<T> {
             return sus(() -> divideMySol2_(acc.foldRight(list(), f ), depth -1));
         }
     }
-
-    // TODO:
-    // Write author's solution
-    // 3 differences:
+    // Author's solution
+    public List<List<T>> divide(int depth) {
+        return this.isEmpty()
+                ? list(this)
+                : divide(list(this), depth);
+    }
+    private List<List<T>> divide(List<List<T>> list, int depth) {
+        return list.head().length() < depth || depth < 2
+                ? list
+                : divide(list.flatMap(x -> x.splitListAt(x.length() / 2)), depth / 2);
+    }
+    public List<List<T>> splitListAt(int i) {
+        return splitListAt(list(), this.reverse(), i).eval();
+    }
+    private TailCall<List<List<T>>> splitListAt(List<T> acc, List<T> list, int i) {
+        return i == 0 || list.isEmpty()
+                ? ret(List.list(list.reverse(), acc))
+                : sus(() -> splitListAt(acc.cons(list.head()), list.tail(), i - 1));
+    }
+    // 3 differences in my solution and author's solution:
     //  1: Understanding 'depth'
+    //  -> I thought this is number of times the list is to be split.
+    //  But in fact this is number of sub-lists to create.
     //  2: Use of flatMap()
+    //  -> I used splitAt() with foldRight() instead I could use flatMap()
+    //  map() and flatMap() on list could have been used to transform each element into a List
     //  3: No need of stack-safe
+    //  -> Note that you don’t need to make this method stack-safe because
+    //  the number of recursion steps will only be log(length).
+    //  In other words, you’ll never have enough heap memory
+    //  to hold a list long enoughto cause a stack overflow.
+
+    public<U> Result<U> parFoldLeft(ExecutorService es, U identity, Function<U, Function<T, U>> fn, Function<U, Function<U, U>> m) {
+        List<List<T>> lists = divide(1024);
+        try {
+            List<U> list = lists.map(l -> es.submit(() -> l.foldLeft(identity, fn))).map(f -> { // f is Future
+                try {
+                    return f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            return success(list.foldLeft(identity, m));
+        } catch(Exception e) {
+            return failure(e);
+        }
+    }
+
+    public <U> Result<List<U>> parMap(ExecutorService es, Function<T, U> g) {
+        try {
+            List<U> list = map(t -> es.submit(() -> g.apply(t))).map(f -> { // f is Future
+                try {
+                    return f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            return success(list);
+        } catch(Exception e) {
+            return failure(e);
+        }
+    }
 }

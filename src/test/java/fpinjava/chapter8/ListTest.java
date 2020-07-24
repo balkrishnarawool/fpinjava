@@ -39,5 +39,6 @@ public class ListTest {
     public void testDivide() {
         assertEquals("[ [ 1, 2, NIL ], [ 3, 4, NIL ], [ 5, 6, NIL ], [ 7, 8, NIL ], NIL ]", list.divideMySol1(2).toString());
         assertEquals("[ [ 1, 2, NIL ], [ 3, 4, NIL ], [ 5, 6, NIL ], [ 7, 8, NIL ], NIL ]", list.divideMySol2(2).toString());
+        assertEquals("[ [ 1, 2, NIL ], [ 3, 4, NIL ], [ 5, 6, NIL ], [ 7, 8, NIL ], NIL ]", list.divide(4).toString());
     }
 }
