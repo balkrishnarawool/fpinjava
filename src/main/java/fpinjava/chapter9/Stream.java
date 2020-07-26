@@ -1,8 +1,13 @@
 package fpinjava.chapter9;
 
+import fpinjava.chapter4.TailCall;
 import fpinjava.chapter7.Result;
+import fpinjava.chapter8.List;
 
 import java.util.function.Supplier;
+
+import static fpinjava.chapter4.TailCall.ret;
+import static fpinjava.chapter4.TailCall.sus;
 
 //
 // TODO
@@ -15,6 +20,8 @@ public abstract class Stream<A> {
     protected abstract A head();
     protected abstract Stream<A> tail();
     public abstract boolean isEmpty();
+    public abstract Stream<A> take(int n);
+    public abstract Stream<A> drop(int n);
 
     public abstract Result<A> headOption();
 
@@ -43,6 +50,16 @@ public abstract class Stream<A> {
         public Result<A> headOption() {
             return Result.empty();
         }
+
+        @Override
+        public Stream<A> take(int n) {
+            return this;
+        }
+
+        @Override
+        public Stream<A> drop(int n) {
+            return this;
+        }
     }
 
     private static class Cons<A> extends Stream<A> {
@@ -60,7 +77,7 @@ public abstract class Stream<A> {
         @Override
         protected A head() {
             if(h == null) {
-                h = head.get()
+                h = head.get();
             }
             return h;
         }
@@ -85,6 +102,27 @@ public abstract class Stream<A> {
             }
             return Result.success(h);
         }
+
+        @Override
+        public Stream<A> take(int n) {
+            return n <= 0
+                    ? empty()
+                    : cons(head, () -> tail().take(n - 1));
+        }
+
+        @Override
+        public Stream<A> drop(int n) {
+            return n <= 0
+                    ? tail()
+                    : tail().drop(n - 1);
+        }
+    }
+
+    public List<A> toList() {
+        return toList_(List.list()).eval().reverse();
+    }
+    private TailCall<List<A>> toList_(List<A> acc) {
+        return isEmpty() ? ret(acc) : sus(() -> tail().toList_(acc.cons(head())));
     }
 
     public static <A> Stream<A> cons(Supplier<A> head, Supplier<Stream<A>> tail){
@@ -103,4 +141,5 @@ public abstract class Stream<A> {
     public static Stream<Integer> from(int i) {
         return cons(() -> i, () -> from(i+1));
     }
+
 }
