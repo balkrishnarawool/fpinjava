@@ -1,5 +1,6 @@
 package fpinjava.chapter9;
 
+import fpinjava.chapter2.Function;
 import fpinjava.chapter4.TailCall;
 import fpinjava.chapter7.Result;
 import fpinjava.chapter8.List;
@@ -20,6 +21,7 @@ public abstract class Stream<A> {
     protected abstract A head();
     protected abstract Stream<A> tail();
     public abstract boolean isEmpty();
+
     public abstract Stream<A> take(int n);
     public abstract Stream<A> drop(int n);
 
@@ -60,6 +62,7 @@ public abstract class Stream<A> {
         public Stream<A> drop(int n) {
             return this;
         }
+
     }
 
     private static class Cons<A> extends Stream<A> {
@@ -110,12 +113,15 @@ public abstract class Stream<A> {
                     : cons(head, () -> tail().take(n - 1));
         }
 
+        // Question: Why does the author make drop() stack-safe?
+        // -> because take() uses Supplier and drop() uses eager evaluation.
         @Override
         public Stream<A> drop(int n) {
             return n <= 0
-                    ? tail()
+                    ? this
                     : tail().drop(n - 1);
         }
+
     }
 
     public List<A> toList() {
@@ -124,6 +130,48 @@ public abstract class Stream<A> {
     private TailCall<List<A>> toList_(List<A> acc) {
         return isEmpty() ? ret(acc) : sus(() -> tail().toList_(acc.cons(head())));
     }
+
+    public Stream<A> takeWhile(Function<A, Boolean> p) {
+        return isEmpty()
+                ? empty()
+                : p.apply(head())
+                    ? cons(() -> head(), () -> tail().takeWhile(p))
+                    : empty();
+    }
+    // It is different from book because this implementation is in Stream and in book the implementation is in Cons class.
+
+    public Stream<A> dropWhile(Function<A, Boolean> p) {
+        return dropWhile_(p).eval();
+    }
+    public TailCall<Stream<A>> dropWhile_(Function<A, Boolean> p) {
+        return isEmpty()
+                ? ret(this)
+                : p.apply(head())
+                    ? sus(() -> tail().dropWhile_(p))
+                    : ret(this);
+    }
+
+    // TODO
+    // The real difference between strictness and laziness is that strictness is about doing things,
+    // and laziness is about noting things to do.
+    // Lazy evaluation of data notes that data must be evaluated sometime in the future.
+
+    // TODO
+    // One huge advantage of this approach is that you could produce a description of a program producing an error,
+    // and then decide not to execute it based on some condition.
+    // Or you could produce an infinite expression, and then apply some means of reducing it to a finite one.
+
+    public boolean exists(Function<A, Boolean> p) {
+        return exists_(p).eval();
+    }
+    private TailCall<Boolean> exists_(Function<A, Boolean> p) {
+        return isEmpty()
+                ? ret(false)
+                : p.apply(head())
+                    ? ret(true)
+                    : sus(() -> tail().exists_(p));
+    }
+
 
     public static <A> Stream<A> cons(Supplier<A> head, Supplier<Stream<A>> tail){
         return new Cons<>(head, tail);
