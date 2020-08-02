@@ -22,10 +22,10 @@ public abstract class Stream<A> {
     protected abstract Stream<A> tail();
     public abstract boolean isEmpty();
 
-    public abstract Stream<A> take(int n);
-    public abstract Stream<A> drop(int n);
-
     public abstract Result<A> headOption();
+
+    public abstract Stream<A> take(int n);
+    public abstract <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f);
 
     private Stream() {}
 
@@ -59,10 +59,9 @@ public abstract class Stream<A> {
         }
 
         @Override
-        public Stream<A> drop(int n) {
-            return this;
+        public <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f) {
+            return z.get();
         }
-
     }
 
     private static class Cons<A> extends Stream<A> {
@@ -113,15 +112,22 @@ public abstract class Stream<A> {
                     : cons(head, () -> tail().take(n - 1));
         }
 
-        // Question: Why does the author make drop() stack-safe?
-        // -> because take() uses Supplier and drop() uses eager evaluation.
         @Override
-        public Stream<A> drop(int n) {
-            return n <= 0
-                    ? this
-                    : tail().drop(n - 1);
+        public <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f) {
+            return f.apply(head()).apply(() -> tail().foldRight(z, f));
         }
+    }
 
+    // Question: Why does the author make drop() stack-safe?
+    // -> because take() uses Supplier/ lazy-evaluation and drop() uses eager evaluation.
+    // If you don't use TailCall, you can get StackOverflowException with drop().
+    public Stream<A> drop(int n) {
+        return drop_(n).eval();
+    }
+    private TailCall<Stream<A>> drop_(int n) {
+        return n <= 0
+                ? ret(this)
+                : sus(() -> tail().drop_(n - 1));
     }
 
     public List<A> toList() {
@@ -143,7 +149,7 @@ public abstract class Stream<A> {
     public Stream<A> dropWhile(Function<A, Boolean> p) {
         return dropWhile_(p).eval();
     }
-    public TailCall<Stream<A>> dropWhile_(Function<A, Boolean> p) {
+    private TailCall<Stream<A>> dropWhile_(Function<A, Boolean> p) {
         return isEmpty()
                 ? ret(this)
                 : p.apply(head())
@@ -171,7 +177,6 @@ public abstract class Stream<A> {
                     ? ret(true)
                     : sus(() -> tail().exists_(p));
     }
-
 
     public static <A> Stream<A> cons(Supplier<A> head, Supplier<Stream<A>> tail){
         return new Cons<>(head, tail);

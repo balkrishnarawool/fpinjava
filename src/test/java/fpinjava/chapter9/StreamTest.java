@@ -3,6 +3,8 @@ package fpinjava.chapter9;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StreamTest {
 
@@ -25,5 +27,17 @@ public class StreamTest {
     @Test
     public void testDropWhile() {
         assertEquals("[ 4, 5, NIL ]", numbers.takeWhile(n -> n <= 5).dropWhile(n -> n < 4).toList().toString());
+    }
+
+    @Test
+    public void testExists() {
+        assertTrue(numbers.take(5).exists(n -> n == 1));
+        assertTrue(numbers.take(5).exists(n -> n == 5));
+        assertFalse(numbers.take(5).exists(n -> n == 0));
+    }
+
+    @Test
+    public void testFoldRight() {
+        assertEquals(15, numbers.take(5).foldRight(() -> 0, n -> s -> n + s.get()));
     }
 }
