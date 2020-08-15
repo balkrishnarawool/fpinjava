@@ -105,6 +105,8 @@ public abstract class Stream<A> {
             return Result.success(h);
         }
 
+        // The recursion in take() is lazy (the recursive call to take() happens in a Supplier).
+        // So this makes take() function stack-safe.
         @Override
         public Stream<A> take(int n) {
             return n <= 0
@@ -112,15 +114,17 @@ public abstract class Stream<A> {
                     : cons(head, () -> tail().take(n - 1));
         }
 
+        // The recursion in foldRight() is lazy (the recursive call to foldRight() happens in a Supplier).
+        // So this makes foldRight() function stack-safe.
         @Override
         public <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f) {
             return f.apply(head()).apply(() -> tail().foldRight(z, f));
         }
     }
 
-    // Question: Why does the author make drop() stack-safe?
-    // -> because take() uses Supplier/ lazy-evaluation and drop() uses eager evaluation.
-    // If you don't use TailCall, you can get StackOverflowException with drop().
+    // In TailCall was not used, the recursion in drop() would have been eager.
+    // That would make drop() function stack-unsafe.
+    // Therefore TailCall is added to make recursion-lazy and the function stack-safe.
     public Stream<A> drop(int n) {
         return drop_(n).eval();
     }
@@ -137,6 +141,8 @@ public abstract class Stream<A> {
         return isEmpty() ? ret(acc) : sus(() -> tail().toList_(acc.cons(head())));
     }
 
+    // Lazy-recursion, so stack-safe
+    // It is different from book because this implementation is in Stream and in book the implementation is in Cons class.
     public Stream<A> takeWhile(Function<A, Boolean> p) {
         return isEmpty()
                 ? empty()
@@ -144,8 +150,8 @@ public abstract class Stream<A> {
                     ? cons(() -> head(), () -> tail().takeWhile(p))
                     : empty();
     }
-    // It is different from book because this implementation is in Stream and in book the implementation is in Cons class.
 
+    // With TailCall because otherwise it would have been eager-recursion and stack-unsafe.
     public Stream<A> dropWhile(Function<A, Boolean> p) {
         return dropWhile_(p).eval();
     }
@@ -178,6 +184,42 @@ public abstract class Stream<A> {
                     : sus(() -> tail().exists_(p));
     }
 
+    public Stream<A> takeWhileWithFoldRight(Function<A, Boolean> p) {
+        return isEmpty()
+                ? empty()
+                : foldRight(() -> empty(), a -> sa -> p.apply(a) ? cons(() -> a, sa) : empty());
+    }
+
+    public Result<A> headOptionWithFoldRight() {
+        return foldRight(() -> Result.empty(), a -> sb -> Result.success(a));
+    }
+
+    // Exercise 9.10
+    public <B> Stream<B> map(Function<A, B> f) {
+        return foldRight(Stream::empty, a -> ssb -> cons(() -> f.apply(a), ssb)); //ssb is Supplier<Stream<B>>
+    }
+
+    // Note that this method evaluates the stream elements until the first match is found. This means
+    // - It returns the stream with head as the first matching element and then lazily fetches the other matching elements (when needed).
+    // It can run into infinite loop if no matching elements are found (in unbounded Streams-s).
+    public Stream<A> filter(Function<A, Boolean> p) {
+        return foldRight(Stream::empty, a -> ssa -> p.apply(a) ? cons(() -> a, ssa) : ssa.get()); //ssa is Supplier<Stream<A>>
+    }
+
+    public Stream<A> append(Supplier<Stream<A>> s) {
+        return foldRight(s, a -> ssa -> cons(() -> a, ssa));
+    }
+
+    public <B> Stream<B> flatMap(Function<A, Stream<B>> f) {
+        return foldRight(() -> empty(), a -> sb -> f.apply(a).append(sb));
+    }
+
+    // TODO In Stream-s, traversing the elements occurs only once even when multiple filter(), map() functions are composed.
+
+    public Result<A> find(Function<A, Boolean> p) {
+        return filter(p).headOption();
+    }
+
     public static <A> Stream<A> cons(Supplier<A> head, Supplier<Stream<A>> tail){
         return new Cons<>(head, tail);
     }
@@ -195,4 +237,7 @@ public abstract class Stream<A> {
         return cons(() -> i, () -> from(i+1));
     }
 
+    public static <A> Stream<A> repeat(A a) {
+        return cons(() -> a, () -> repeat(a));
+    }
 }
