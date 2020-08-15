@@ -1,5 +1,6 @@
 package fpinjava.chapter9;
 
+import fpinjava.chapter1.Tuple;
 import fpinjava.chapter2.Function;
 import fpinjava.chapter4.TailCall;
 import fpinjava.chapter7.Result;
@@ -240,4 +241,34 @@ public abstract class Stream<A> {
     public static <A> Stream<A> repeat(A a) {
         return cons(() -> a, () -> repeat(a));
     }
+
+    public static <A> Stream<A> iterate(A seed, Function<A, A> f) {
+        return cons(() -> seed, () -> iterate(f.apply(seed), f));
+    }
+
+    public static <A> Stream<A> iterate(Supplier<A> s, Function<A, A> f) {
+        return cons(s, () -> iterate(f.apply(s.get()), f));
+    }
+
+//  My implementation without using iterate.
+//    public static Stream<Integer> fibs(int i1, int i2) {
+//        return cons(() -> i1, () -> fibs(i2, i1 + i2));
+//    }
+    public static Stream<Integer> fibs() {
+        return iterate(new Tuple<>(0, 1), t -> new Tuple<>(t._2, t._1 + t._2)).map(t -> t._1);
+    }
+
+    public static <A, S> Stream<A> unfold(S z, Function<S, Result<Tuple<A, S>>> f) {
+        return f.apply(z).map(x -> cons(() -> x._1, () -> unfold(x._2, f))).getOrElse(empty());
+    }
+//    public Stream<A> repeat(A a) {
+//        return unfold(a, a1 -> Result.success(new Tuple<>(a1, a1)));
+//    }
+//    public static Stream<Integer> from(int n) {
+//        return unfold(n, x -> Result.success(new Tuple<>(x, x + 1)));
+//    }
+//    public static Stream<Integer> fibs() {
+//        return unfold(new Tuple<>(1, 1),
+//                x -> Result.success(new Tuple<>(x._1, new Tuple<>(x._2, x._1 + x._2))));
+//    }
 }
