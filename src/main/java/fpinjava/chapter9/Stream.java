@@ -19,11 +19,11 @@ import static fpinjava.chapter4.TailCall.sus;
 // Why not use Java Stream-s?
 public abstract class Stream<A> {
 
-    protected abstract A head();
+    protected abstract Tuple<A, Stream<A>> head();
     protected abstract Stream<A> tail();
     public abstract boolean isEmpty();
 
-    public abstract Result<A> headOption();
+    public abstract Tuple<Result<A>, Stream<A>> headOption();
 
     public abstract Stream<A> take(int n);
     public abstract <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f);
@@ -35,7 +35,7 @@ public abstract class Stream<A> {
     private static class Empty<A> extends Stream<A> {
 
         @Override
-        protected A head() {
+        protected Tuple<A, Stream<A>> head() {
             throw new IllegalStateException("head called on Empty");
         }
 
@@ -50,8 +50,8 @@ public abstract class Stream<A> {
         }
 
         @Override
-        public Result<A> headOption() {
-            return Result.empty();
+        public Tuple<Result<A>, Stream<A>> headOption() {
+            return new Tuple<>(Result.empty(), this);
         }
 
         @Override
@@ -67,22 +67,29 @@ public abstract class Stream<A> {
 
     private static class Cons<A> extends Stream<A> {
 
-        private Supplier<A> head;
-        private Supplier<Stream<A>> tail;
-        private A h;
+        private final Supplier<A> head;
+        private final Supplier<Stream<A>> tail;
+        private final Result<A> h;
         private Stream<A> t;
 
         private Cons(Supplier<A> head, Supplier<Stream<A>> tail) {
             this.tail = tail;
             this.head = head;
+            this.h = Result.empty();
+        }
+
+        private Cons(A h, Supplier<Stream<A>> t) {
+            head = () -> h;
+            tail = t;
+            this.h = Result.success(h);
         }
 
         @Override
-        protected A head() {
-            if(h == null) {
-                h = head.get();
-            }
-            return h;
+        protected Tuple<A, Stream<A>> head() {
+            A a = h.getOrElse(head.get());
+            return h.isEmpty()
+                    ? new Tuple<>(a, new Cons<>(a, tail))
+                    : new Tuple<>(a, this);
         }
 
         @Override
@@ -99,15 +106,13 @@ public abstract class Stream<A> {
         }
 
         @Override
-        public Result<A> headOption() {
-            if(h == null) {
-                h = head.get();
-            }
-            return Result.success(h);
+        public Tuple<Result<A>, Stream<A>> headOption() {
+            Tuple<A, Stream<A>> t = head();
+            return new Tuple<>(Result.success(t._1), t._2);
         }
 
         // The recursion in take() is lazy (the recursive call to take() happens in a Supplier).
-        // So this makes take() function stack-safe.
+        // TODO Question: why is this function() stack-safe?
         @Override
         public Stream<A> take(int n) {
             return n <= 0
@@ -116,10 +121,10 @@ public abstract class Stream<A> {
         }
 
         // The recursion in foldRight() is lazy (the recursive call to foldRight() happens in a Supplier).
-        // So this makes foldRight() function stack-safe.
+        // Lazy but stack-unsafe. See StreamTest.testFoldRight().
         @Override
         public <B> B foldRight(Supplier<B> z, Function<A, Function<Supplier<B>, B>> f) {
-            return f.apply(head()).apply(() -> tail().foldRight(z, f));
+            return f.apply(head()._1).apply(() -> tail().foldRight(z, f));
         }
     }
 
@@ -139,16 +144,17 @@ public abstract class Stream<A> {
         return toList_(List.list()).eval().reverse();
     }
     private TailCall<List<A>> toList_(List<A> acc) {
-        return isEmpty() ? ret(acc) : sus(() -> tail().toList_(acc.cons(head())));
+        return isEmpty() ? ret(acc) : sus(() -> tail().toList_(acc.cons(head()._1)));
     }
 
-    // Lazy-recursion, so stack-safe
+    // Lazy
     // It is different from book because this implementation is in Stream and in book the implementation is in Cons class.
+    // TODO Question: why is this function() stack-safe?
     public Stream<A> takeWhile(Function<A, Boolean> p) {
         return isEmpty()
                 ? empty()
-                : p.apply(head())
-                    ? cons(() -> head(), () -> tail().takeWhile(p))
+                : p.apply(head()._1)
+                    ? cons(() -> head()._1, () -> tail().takeWhile(p))
                     : empty();
     }
 
@@ -159,7 +165,7 @@ public abstract class Stream<A> {
     private TailCall<Stream<A>> dropWhile_(Function<A, Boolean> p) {
         return isEmpty()
                 ? ret(this)
-                : p.apply(head())
+                : p.apply(head()._1)
                     ? sus(() -> tail().dropWhile_(p))
                     : ret(this);
     }
@@ -180,7 +186,7 @@ public abstract class Stream<A> {
     private TailCall<Boolean> exists_(Function<A, Boolean> p) {
         return isEmpty()
                 ? ret(false)
-                : p.apply(head())
+                : p.apply(head()._1)
                     ? ret(true)
                     : sus(() -> tail().exists_(p));
     }
@@ -200,11 +206,24 @@ public abstract class Stream<A> {
         return foldRight(Stream::empty, a -> ssb -> cons(() -> f.apply(a), ssb)); //ssb is Supplier<Stream<B>>
     }
 
-    // Note that this method evaluates the stream elements until the first match is found. This means
-    // - It returns the stream with head as the first matching element and then lazily fetches the other matching elements (when needed).
-    // It can run into infinite loop if no matching elements are found (in unbounded Streams-s).
+    // This implementation of filter() is lazy but stack-unsafe.
+    // Lazy because it returns the stream with head as the first matching element and then lazily fetches the other matching elements (when needed).
+    // It can run into StackOverflowError if no matching elements are found (in sufficiently long Streams-s).
+    // public Stream<A> filter(Function<A, Boolean> p) {
+    //     return foldRight(Stream::empty, a -> ssa -> p.apply(a) ? cons(() -> a, ssa) : ssa.get()); //ssa is Supplier<Stream<A>>
+    // }
+    // Below is stack-safe implementation - using head()
+    // public Stream<A> filter(Function<A, Boolean> p) {
+    //     Stream<A> stream = this.dropWhile(x -> !p.apply(x));
+    //     return stream.isEmpty()
+    //             ? stream
+    //             : cons(() -> stream.head()._1,
+    //             () -> stream.tail().filter(p));
+    // }
     public Stream<A> filter(Function<A, Boolean> p) {
-        return foldRight(Stream::empty, a -> ssa -> p.apply(a) ? cons(() -> a, ssa) : ssa.get()); //ssa is Supplier<Stream<A>>
+        Stream<A> stream = this.dropWhile(x -> !p.apply(x));
+        return stream.headOption()._1.map(a -> cons(() -> a, () -> stream.tail().filter(p)))
+                                    .getOrElse(empty());
     }
 
     public Stream<A> append(Supplier<Stream<A>> s) {
@@ -218,7 +237,7 @@ public abstract class Stream<A> {
     // TODO In Stream-s, traversing the elements occurs only once even when multiple filter(), map() functions are composed.
 
     public Result<A> find(Function<A, Boolean> p) {
-        return filter(p).headOption();
+        return filter(p).headOption()._1;
     }
 
     public static <A> Stream<A> cons(Supplier<A> head, Supplier<Stream<A>> tail){

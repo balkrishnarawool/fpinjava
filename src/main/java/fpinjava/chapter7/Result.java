@@ -28,6 +28,7 @@ public abstract class Result<T> {
 
     public abstract boolean isSuccess();
     public abstract boolean isFailure();
+    public abstract boolean isEmpty();
 
     @SuppressWarnings("rawtypes")
     private static Result empty = new Empty();
@@ -89,6 +90,11 @@ public abstract class Result<T> {
         @Override
         public boolean isFailure() {
             return false;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
         }
 
         @Override
@@ -236,6 +242,11 @@ public abstract class Result<T> {
 
         @Override
         public boolean isFailure() {
+            return false;
+        }
+
+        @Override
+        public boolean isEmpty() {
             return false;
         }
     }

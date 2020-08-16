@@ -40,6 +40,8 @@ public class StreamTest {
     @Test
     public void testFoldRight() {
         assertEquals(15, numbers.take(5).foldRight(() -> 0, n -> s -> n + s.get()));
+        // assertEquals(50_000, numbers.take(50_001).foldRight(Stream::empty, a -> ssa -> a == 50_000 ? cons(() -> a, ssa) : ssa.get()).head()); // -> StackOverflowError
+        // assertEquals(50_000, numbers.foldRight(Stream::empty, a -> ssa -> a == 50_000 ? cons(() -> a, ssa) : ssa.get()).head()); // -> StackOverflowError
     }
 
     @Test
@@ -47,6 +49,8 @@ public class StreamTest {
         Stream<Integer> evenNumbers = numbers.filter(n -> n % 2 == 0);
         assertEquals(2, evenNumbers.head());
         assertEquals(4, evenNumbers.tail().head());
+        // assertEquals(50_000, numbers.take(50_001).filter( n -> n == 50_000).head()); // -> StackOverflowError
+        // assertEquals(50_000, numbers.filter( n -> n == 50_000).head()); // -> StackOverflowError
     }
 
     @Test
