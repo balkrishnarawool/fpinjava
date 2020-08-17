@@ -16,7 +16,7 @@ import static fpinjava.chapter4.TailCall.sus;
 // What is lazy?
 // Some languages are lazy and some are eager.
 // Java is lot eager and some lazy.
-// Why not use Java Stream-s?
+// Why not use Java List-s?
 public abstract class Stream<A> {
 
     protected abstract Tuple<A, Stream<A>> head();
@@ -112,7 +112,6 @@ public abstract class Stream<A> {
         }
 
         // The recursion in take() is lazy (the recursive call to take() happens in a Supplier).
-        // TODO Question: why is this function() stack-safe?
         @Override
         public Stream<A> take(int n) {
             return n <= 0
@@ -179,6 +178,19 @@ public abstract class Stream<A> {
     // One huge advantage of this approach is that you could produce a description of a program producing an error,
     // and then decide not to execute it based on some condition.
     // Or you could produce an infinite expression, and then apply some means of reducing it to a finite one.
+
+    // Question: why are take() and takeWhile() functions stack-safe?
+    // Because they return a Stream with "the condition" built into it which is lazily evaluated.
+    // Why is foldRight() not stack-safe? This is also the same reason as above.
+    // foldRight() returns a single object (and not Stream) and the recursion there is eager which evaluates the whole Stream.
+    // Can we implement filter(), map(), drop() and dropWhile() like this so as they are also stack-safe?
+    // It is not suitable for filter(), drop() and dropWhile() because it has to skip non-matching elements.
+    // So it anyways has to evaluate Stream until it finds a matching element.
+    public <B> Stream<B> map1(Function<A, B> f) { // This is example of implementing the function map()
+        return isEmpty()
+                ? empty()
+                : cons(() -> f.apply(head()._1), () -> tail().map1(f));
+    }
 
     public boolean exists(Function<A, Boolean> p) {
         return exists_(p).eval();
