@@ -34,7 +34,14 @@ package fpinjava.chapter10;
 // - The the balance of the tree depends on the order in which elements are inserted.
 // - Inserting ordered elements will produce a totally unbalanced tree.
 // - Many insertion orders will produce identical trees.
+// Tree traversal order:
 // - A set of 10 elements can be inserted into a tree in 3,628,800 distinct orders, but this will only produce 16,796 distinct trees.
 // - Ordered trees are very efficient for storing and retrieving random data, but they’re very bad for storing and retrieving preordered data.
+// - Recursive traversal orders
+//   - Pre-order, in-order, post-order
+//   - Depth first / height first
+//   - Depth first pre-order, depth first in-order, depth first post-order
+// - No-recursive traversal order
+//   - Breadth-first search / level-order traversal
 public abstract class Tree<A> {
 }
