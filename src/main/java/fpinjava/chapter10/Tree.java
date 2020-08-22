@@ -43,5 +43,5 @@ package fpinjava.chapter10;
 //   - Depth first pre-order, depth first in-order, depth first post-order
 // - No-recursive traversal order
 //   - Breadth-first search / level-order traversal
-public abstract class Tree<A> {
+public abstract class Tree<A extends Comparable<A>> {
 }
