@@ -44,4 +44,75 @@ package fpinjava.chapter10;
 // - No-recursive traversal order
 //   - Breadth-first search / level-order traversal
 public abstract class Tree<A extends Comparable<A>> {
+
+    public abstract A value();
+    abstract Tree<A> left();
+    abstract Tree<A> right();
+
+    @SuppressWarnings("rawtypes")
+    private static Tree EMPTY = new Empty();
+
+    public static class Empty<A extends Comparable<A>> extends Tree<A> {
+
+        private Empty(){
+        }
+
+        @Override
+        public A value() {
+            throw new IllegalStateException("value called on empty tree");
+        }
+
+        @Override
+        Tree<A> left() {
+            throw new IllegalStateException("left called on empty tree");
+        }
+
+        @Override
+        Tree<A> right() {
+            throw new IllegalStateException("right called on empty tree");
+        }
+
+        @Override
+        public String toString() {
+            return "E";
+        }
+    }
+
+    public static class T<A extends Comparable<A>> extends Tree<A> {
+
+        private A value;
+        private Tree<A> left;
+        private Tree<A> right;
+
+        private T(A value, Tree<A> left, Tree<A> right){
+            this.value = value;
+            this.left = left;
+            this.right = right;
+        }
+
+        @Override
+        public A value() {
+            return value;
+        }
+
+        @Override
+        Tree<A> left() {
+            return left;
+        }
+
+        @Override
+        Tree<A> right() {
+            return right;
+        }
+
+        @Override
+        public String toString() {
+            return "T";
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <A extends Comparable<A>> Tree<A> empty() {
+        return EMPTY;
+    }
 }
