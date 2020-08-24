@@ -49,6 +49,8 @@ public abstract class Tree<A extends Comparable<A>> {
     abstract Tree<A> left();
     abstract Tree<A> right();
 
+    public abstract Tree<A> insert(A a);
+
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
 
@@ -76,6 +78,10 @@ public abstract class Tree<A extends Comparable<A>> {
         public String toString() {
             return "E";
         }
+
+        public Tree<A> insert(A insertedValue) {
+            return new T<>(empty(), insertedValue, empty());
+        }
     }
 
     public static class T<A extends Comparable<A>> extends Tree<A> {
@@ -84,9 +90,9 @@ public abstract class Tree<A extends Comparable<A>> {
         private Tree<A> left;
         private Tree<A> right;
 
-        private T(A value, Tree<A> left, Tree<A> right){
-            this.value = value;
+        private T(Tree<A> left, A value, Tree<A> right){
             this.left = left;
+            this.value = value;
             this.right = right;
         }
 
@@ -109,10 +115,21 @@ public abstract class Tree<A extends Comparable<A>> {
         public String toString() {
             return "T";
         }
+
+        @Override
+        public Tree<A> insert(A insertedValue) {
+            return insertedValue.compareTo(this.value) < 0
+                    ? new T<>(left.insert(insertedValue), this.value, right)
+                    : insertedValue.compareTo(this.value) > 0
+                        ? new T<>(left, this.value, right.insert(insertedValue))
+                        : new T<>(this.left, insertedValue, this.right);
+        }
+
     }
 
     @SuppressWarnings("unchecked")
     public static <A extends Comparable<A>> Tree<A> empty() {
         return EMPTY;
     }
+
 }
