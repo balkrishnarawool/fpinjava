@@ -1,5 +1,7 @@
 package fpinjava.chapter10;
 
+import fpinjava.chapter8.List;
+
 // TODO
 // List has limitations:
 // - The complexity of accessing elements grows proportionally with the number of elements.
@@ -50,6 +52,7 @@ public abstract class Tree<A extends Comparable<A>> {
     abstract Tree<A> right();
 
     public abstract Tree<A> insert(A a);
+    public abstract boolean member(A a);
 
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
@@ -79,9 +82,16 @@ public abstract class Tree<A extends Comparable<A>> {
             return "E";
         }
 
+        @Override
         public Tree<A> insert(A insertedValue) {
             return new T<>(empty(), insertedValue, empty());
         }
+
+        @Override
+        public boolean member(A a){
+            return false;
+        }
+
     }
 
     public static class T<A extends Comparable<A>> extends Tree<A> {
@@ -125,6 +135,24 @@ public abstract class Tree<A extends Comparable<A>> {
                         : new T<>(this.left, insertedValue, this.right);
         }
 
+        @Override
+        public boolean member(A value) {
+            return value.compareTo(this.value) < 0
+                    ? left.member(value)
+                    : value.compareTo(this.value) > 0
+                        ? right.member(value)
+                        : true;
+        }
+
+    }
+
+    public static <A extends Comparable<A>> Tree<A> tree(List<A> list) {
+        return list.foldLeft(empty(), t -> t::insert);
+    }
+
+    @SafeVarargs
+    public static <A extends Comparable<A>> Tree<A> tree(A... as) {
+        return tree(List.list(as));
     }
 
     @SuppressWarnings("unchecked")
