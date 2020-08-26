@@ -1,5 +1,6 @@
 package fpinjava.chapter10;
 
+import fpinjava.chapter7.Result;
 import fpinjava.chapter8.List;
 
 // TODO
@@ -53,6 +54,14 @@ public abstract class Tree<A extends Comparable<A>> {
 
     public abstract Tree<A> insert(A a);
     public abstract boolean member(A a);
+    public abstract int size();
+    public abstract int height();
+    public abstract Result<A> max();
+    public abstract Result<A> min();
+    public abstract boolean isEmpty();
+
+    public abstract Tree<A> remove(A a);
+    protected abstract Tree<A> removeMerge(Tree<A> ta);
 
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
@@ -90,6 +99,41 @@ public abstract class Tree<A extends Comparable<A>> {
         @Override
         public boolean member(A a){
             return false;
+        }
+
+        @Override
+        public int size() {
+            return 0;
+        }
+
+        @Override
+        public int height() {
+            return -1;
+        }
+
+        @Override
+        public Result<A> max() {
+            return Result.empty();
+        }
+
+        @Override
+        public Result<A> min() {
+            return Result.empty();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public Tree<A> remove(A a) {
+            return this;
+        }
+
+        @Override
+        protected Tree<A> removeMerge(Tree<A> ta) {
+            return this;
         }
 
     }
@@ -144,6 +188,54 @@ public abstract class Tree<A extends Comparable<A>> {
                         : true;
         }
 
+        @Override
+        public int size() {
+            return 1 + left.size() + right.size();
+        }
+
+        @Override
+        public int height() {
+            return 1 + Math.max(left.height(), right.height());
+        }
+
+        @Override
+        public Result<A> max() {
+            return right.max().orElse(() -> Result.success(value));
+        }
+
+        @Override
+        public Result<A> min() {
+            return left.min().orElse(() -> Result.success(value));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        protected Tree<A> removeMerge(Tree<A> ta) {
+            if (ta.isEmpty()) {
+                return this;
+            }
+            if (ta.value().compareTo(value) < 0) {
+                return new T<>(left.removeMerge(ta), value, right);
+            } else if (ta.value().compareTo(value) > 0) {
+                return new T<>(left, value, right.removeMerge(ta));
+            }
+            throw new IllegalStateException("We shouldn't be here");
+        }
+
+        @Override
+        public Tree<A> remove(A a) {
+            if (a.compareTo(this.value) < 0) {
+                return new T<>(left.remove(a), value, right);
+            } else if (a.compareTo(this.value) > 0) {
+                return new T<>(left, value, right.remove(a));
+            } else {
+                return left.removeMerge (right);
+            }
+        }
     }
 
     public static <A extends Comparable<A>> Tree<A> tree(List<A> list) {
