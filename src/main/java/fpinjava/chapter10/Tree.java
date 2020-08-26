@@ -46,6 +46,8 @@ import fpinjava.chapter8.List;
 //   - Depth first pre-order, depth first in-order, depth first post-order
 // - No-recursive traversal order
 //   - Breadth-first search / level-order traversal
+// Merging two trees gives a tree with a size (number of elements) that can be smaller than the sum of the sizes of the original trees
+// The height of the result is higher than the optimal height (the smallest power of 2 higher than the resulting size which is log2(size))
 public abstract class Tree<A extends Comparable<A>> {
 
     public abstract A value();
@@ -62,6 +64,8 @@ public abstract class Tree<A extends Comparable<A>> {
 
     public abstract Tree<A> remove(A a);
     protected abstract Tree<A> removeMerge(Tree<A> ta);
+
+    public abstract Tree<A> merge(Tree<A> a);
 
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
@@ -134,6 +138,11 @@ public abstract class Tree<A extends Comparable<A>> {
         @Override
         protected Tree<A> removeMerge(Tree<A> ta) {
             return this;
+        }
+
+        @Override
+        public Tree<A> merge(Tree<A> a) {
+            return a;
         }
 
     }
@@ -235,6 +244,22 @@ public abstract class Tree<A extends Comparable<A>> {
             } else {
                 return left.removeMerge (right);
             }
+        }
+
+        @Override
+        public Tree<A> merge(Tree<A> a) {
+            if (a.isEmpty()) {
+                return this;
+            }
+            if (a.value().compareTo(this.value) > 0) {
+                return new T<>(left, value, right.merge(new T<>(empty(),
+                        a.value(), a.right()))).merge(a.left());
+            }
+            if (a.value().compareTo(this.value) < 0) {
+                return new T<>(left.merge(new T<>(a.left(), a.value(),
+                        empty())), value, right).merge(a.right());
+            }
+            return new T<>(left.merge(a.left()), value, right.merge(a.right()));
         }
     }
 
