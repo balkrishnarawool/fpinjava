@@ -1,5 +1,6 @@
 package fpinjava.chapter10;
 
+import fpinjava.chapter2.Function;
 import fpinjava.chapter7.Result;
 import fpinjava.chapter8.List;
 
@@ -48,6 +49,13 @@ import fpinjava.chapter8.List;
 //   - Breadth-first search / level-order traversal
 // Merging two trees gives a tree with a size (number of elements) that can be smaller than the sum of the sizes of the original trees
 // The height of the result is higher than the optimal height (the smallest power of 2 higher than the resulting size which is log2(size))
+// Folding trees:
+// - Post order left
+// - Pre order left
+// - Post order right
+// - Pre order right
+// - In order left
+// - In order right
 public abstract class Tree<A extends Comparable<A>> {
 
     public abstract A value();
@@ -65,7 +73,14 @@ public abstract class Tree<A extends Comparable<A>> {
     public abstract Tree<A> remove(A a);
     protected abstract Tree<A> removeMerge(Tree<A> ta);
 
+    protected abstract List<A> toListPreOrderLeft();
+
     public abstract Tree<A> merge(Tree<A> a);
+    public abstract <B> B foldLeft(B identity, Function<B, Function<A, B>> f, Function<B, Function<B, B>> g);
+    public abstract <B> B foldRight(B identity, Function<A, Function<B, B>> f, Function<B, Function<B, B>> g);
+    public abstract <B> B foldInOrder(B identity, Function<B, Function<A, Function<B, B>>> f);
+    public abstract <B> B foldPreOrder(B identity, Function<A, Function<B, Function<B, B>>> f);
+    public abstract <B> B foldPostOrder(B identity, Function<B, Function<B, Function<A, B>>> f);
 
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
@@ -141,8 +156,38 @@ public abstract class Tree<A extends Comparable<A>> {
         }
 
         @Override
+        protected List<A> toListPreOrderLeft() {
+            return List.list();
+        }
+
+        @Override
         public Tree<A> merge(Tree<A> a) {
             return a;
+        }
+
+        @Override
+        public <B> B foldLeft(B identity, Function<B, Function<A, B>> f, Function<B, Function<B, B>> g) {
+            return identity;
+        }
+
+        @Override
+        public <B> B foldRight(B identity, Function<A, Function<B, B>> f, Function<B, Function<B, B>> g) {
+            return identity;
+        }
+
+        @Override
+        public <B> B foldInOrder(B identity, Function<B, Function<A, Function<B, B>>> f) {
+            return identity;
+        }
+
+        @Override
+        public <B> B foldPreOrder(B identity, Function<A, Function<B, Function<B, B>>> f) {
+            return identity;
+        }
+
+        @Override
+        public <B> B foldPostOrder(B identity, Function<B, Function<B, Function<A, B>>> f) {
+            return identity;
         }
 
     }
@@ -261,6 +306,86 @@ public abstract class Tree<A extends Comparable<A>> {
             }
             return new T<>(left.merge(a.left()), value, right.merge(a.right()));
         }
+
+        @Override
+        public <B> B foldLeft(B identity, Function<B, Function<A, B>> f, Function<B, Function<B, B>> g) { // ote the signature of f is different than foldRight
+                                                                                      // Apply g to
+            return g.apply(right.foldLeft(identity, f, g))                            // folded right subtree and
+                    .apply(f.apply(left.foldLeft(identity, f, g)).apply(this.value)); // result of applying f to folded left subtree and root-value
+            // Note that there is other implementation possible as below.
+            // This implementation is also correct according to the definition of folding, but result might be different.
+            //      Apply g to
+            //      folded left subtree and
+            //      result of applying f to folded right subtree and root-value
+
+        }
+
+        @Override
+        public <B> B foldRight(B identity, Function<A, Function<B, B>> f, Function<B, Function<B, B>> g) { // Note the signature of f is different than foldLeft
+                                                                                      // Apply g to
+            return g.apply(f.apply(this.value).apply(left.foldRight(identity, f, g))) // result of applying f to root-value and folded left subtree and
+                    .apply(right.foldRight(identity, f, g));                          // folded right subtree
+            // Note that there is other implementation possible as below.
+            // This implementation is also correct according to the definition of folding, but result might be different.
+            //      Apply g to
+            //      result of applying f to root-value and folded right subtree and
+            //      folded left subtree
+        }
+
+        @Override
+        public <B> B foldInOrder(B identity, Function<B, Function<A, Function<B, B>>> f) {
+            return f.apply(left.foldInOrder(identity, f))
+                    .apply(value).apply(right.foldInOrder(identity, f));
+        }
+
+        @Override
+        public <B> B foldPreOrder(B identity, Function<A, Function<B, Function<B, B>>> f) {
+            return f.apply(value).apply(left.foldPreOrder(identity, f))
+                    .apply(right.foldPreOrder(identity, f));
+        }
+
+        @Override
+        public <B> B foldPostOrder(B identity, Function<B, Function<B, Function<A, B>>> f) {
+            return f.apply(left.foldPostOrder(identity, f))
+                    .apply(right.foldPostOrder(identity, f)).apply(value);
+        }
+
+        @Override
+        protected List<A> toListPreOrderLeft() {
+            return left().toListPreOrderLeft()
+                    .concat(right().toListPreOrderLeft()).cons(value);
+        }
+
+    }
+
+    public static <A extends Comparable<A>> boolean lt(A first, A second) {
+        return first.compareTo(second) < 0;
+    }
+
+    public static <A extends Comparable<A>> boolean lt(A first, A second,
+                                                       A third) {
+        return lt(first, second) && lt(second, third);
+    }
+
+    public static <A extends Comparable<A>> boolean ordered(Tree<A> left, A a, Tree<A> right) {
+        return left.max().flatMap(lMax -> right.min().map(rMin ->
+                lt(lMax, a, rMin))).getOrElse(left.isEmpty() && right.isEmpty())
+                || left.min().mapEmpty().flatMap(ignore -> right.min().map(rMin ->
+                lt(a, rMin))).getOrElse(false)
+                || right.min().mapEmpty().flatMap(ignore -> left.max().map(lMax ->
+                lt(lMax, a))).getOrElse(false);
+    }
+
+    public static <A extends Comparable<A>> Tree<A> tree(Tree<A> t1, A a, Tree<A> t2) {
+        return ordered(t1, a, t2)
+                ? new T<>(t1, a, t2)
+                : ordered(t2, a, t1)
+                ? new T<>(t2, a, t1)
+                : Tree.<A>empty().insert(a).merge(t1).merge(t2);
+    }
+
+    public <B> B foldLeft(B identity, Function<B, Function<A, B>> f) {
+        return toListPreOrderLeft().foldLeft(identity, f);
     }
 
     public static <A extends Comparable<A>> Tree<A> tree(List<A> list) {

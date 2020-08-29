@@ -33,6 +33,8 @@ public abstract class Result<T> {
     @SuppressWarnings("rawtypes")
     private static Result empty = new Empty();
 
+    public abstract Result<Nothing> mapEmpty();
+
     static class Empty<T> extends Result<T> {
         @Override
         public T getOrElse(T defaultValue) {
@@ -95,6 +97,11 @@ public abstract class Result<T> {
         @Override
         public boolean isEmpty() {
             return true;
+        }
+
+        @Override
+        public Result<Nothing> mapEmpty() {
+            return success(new Nothing());
         }
 
         @Override
@@ -249,6 +256,12 @@ public abstract class Result<T> {
         public boolean isEmpty() {
             return false;
         }
+
+        @Override
+        public Result<Nothing> mapEmpty() {
+            return failure("mapEmpty() called on Success");
+        }
+
     }
 
     public static <T> Result<T> failure(String message) {
@@ -381,4 +394,6 @@ public abstract class Result<T> {
     public static <T, U, V> Result<V> map2(Result<T> rt, Result<U> ru, Function<T, Function<U, V>> f) {
         return lift2(f).apply(rt).apply(ru);
     }
+
+    public static class Nothing { }
 }

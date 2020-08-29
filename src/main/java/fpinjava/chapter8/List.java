@@ -214,6 +214,9 @@ public abstract class List<T> {
     //     }
     // }
 
+    public <T> List<T> concat(List<T> list) {
+        return concat_(reverse(), list).eval();
+    }
     public static <T> List<T> concat(List<T> list1, List<T> list2) {
         return concat_(list1.reverse(), list2).eval();
     }
