@@ -82,6 +82,8 @@ public abstract class Tree<A extends Comparable<A>> {
     public abstract <B> B foldPreOrder(B identity, Function<A, Function<B, Function<B, B>>> f);
     public abstract <B> B foldPostOrder(B identity, Function<B, Function<B, Function<A, B>>> f);
 
+    public abstract <B extends Comparable<B>> Tree<B> map(Function<A, B> f);
+
     @SuppressWarnings("rawtypes")
     private static Tree EMPTY = new Empty();
 
@@ -188,6 +190,11 @@ public abstract class Tree<A extends Comparable<A>> {
         @Override
         public <B> B foldPostOrder(B identity, Function<B, Function<B, Function<A, B>>> f) {
             return identity;
+        }
+
+        @Override
+        public <B extends Comparable<B>> Tree<B> map(Function<A, B> f) {
+            return empty();
         }
 
     }
@@ -354,6 +361,12 @@ public abstract class Tree<A extends Comparable<A>> {
         protected List<A> toListPreOrderLeft() {
             return left().toListPreOrderLeft()
                     .concat(right().toListPreOrderLeft()).cons(value);
+        }
+
+        @Override
+        public <B extends Comparable<B>> Tree<B> map(Function<A, B> f) {
+            return foldInOrder(Tree.<B>empty(),
+                    t1 -> i -> t2 -> Tree.tree(t1, f.apply(i), t2));
         }
 
     }
